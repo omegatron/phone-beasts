@@ -1,6 +1,14 @@
 // Shared overworld functions used by all map scenes
 var OverworldMixin = {
     initOverworld: function(mapKey) {
+        // Copy mixin methods onto the scene so this._method() calls work
+        var methods = ['_renderMap', '_createPlayer', '_createNPCs', '_createTrainerNPCs',
+            '_setupCamera', '_showLocationName', '_canMoveTo', '_checkExit', '_doExit',
+            '_movePlayer', '_checkEncounter', '_interact', 'updateOverworld'];
+        for (var i = 0; i < methods.length; i++) {
+            this[methods[i]] = OverworldMixin[methods[i]];
+        }
+
         this.mapKey = mapKey;
         this.mapData = MAPS[mapKey];
         this.tileSize = TILE_SIZE;

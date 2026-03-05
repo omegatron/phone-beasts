@@ -23,13 +23,14 @@ var BootScene = new Phaser.Class({
         }).setOrigin(0.5);
 
         // Simulate loading progress while generating assets
-        var progress = 0;
+        var ticks = 0;
         var self = this;
         this.time.addEvent({
             delay: 50,
             repeat: 20,
             callback: function() {
-                progress += 0.05;
+                ticks++;
+                var progress = ticks / 20;
                 progressBar.clear();
                 progressBar.fillStyle(0x4a8c3f, 1);
                 progressBar.fillRect(w / 2 - 105, h / 2 - 10, 210 * Math.min(progress, 1), 20);

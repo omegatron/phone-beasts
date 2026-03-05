@@ -1,4 +1,4 @@
-const CACHE_NAME = 'phone-beasts-v3';
+const CACHE_NAME = 'phone-beasts-v4';
 const ASSETS = [
     './',
     './index.html',
