@@ -10,6 +10,7 @@ var StarterSelectScene = new Phaser.Class({
         var self = this;
 
         this.cameras.main.setBackgroundColor('#2c3e50');
+        this.cameras.main.fadeIn(800, 0, 0, 0);
 
         // Title
         this.add.text(w / 2, 30, 'Choose Your Beast!', {

@@ -60,14 +60,13 @@ var DialogManager = {
         var cam = scene.cameras.main;
         var boxW = cam.width - 16;
         var boxH = 72;
-        var boxX = cam.scrollX + 8;
-        var boxY = cam.scrollY + cam.height - boxH - 8;
+        // Position dialog above the touch controls overlay (bottom 45% of screen)
+        var boxX = 8;
+        var boxY = cam.height * 0.50 - boxH;
 
         this.container = scene.add.container(boxX, boxY);
         this.container.setDepth(1000);
         this.container.setScrollFactor(0);
-        this.container.x = 8;
-        this.container.y = cam.height - boxH - 8;
 
         // Background
         var bg = scene.add.graphics();

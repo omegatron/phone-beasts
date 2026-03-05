@@ -20,6 +20,7 @@ var OverworldMixin = {
         this._createPlayer();
         this._createNPCs();
         this._setupCamera();
+        this.cameras.main.fadeIn(500, 0, 0, 0);
 
         // Location name popup
         this._showLocationName();
