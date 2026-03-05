@@ -69,7 +69,7 @@ var BattleEngine = {
 
     calcCatchChance: function(targetBeast) {
         var base = BEASTS[targetBeast.id];
-        var hpPercent = targetBeast.currentHP / (PlayerState.calcStats(base.baseStats, targetBeast.level).hp + targetBeast.level);
+        var hpPercent = targetBeast.currentHP / PlayerState.calcStats(base.baseStats, targetBeast.level).hp;
         var chance = (1 - hpPercent) * 0.5 + 0.1;
         return Math.min(0.9, Math.max(0.1, chance));
     },

@@ -116,7 +116,7 @@ var MAPS = {
                     // Border
                     if (y === 0 || y === 29 || x === 0 || x === 29) {
                         if (y === 0 && x === 5) row.push(-2);       // North exit to Route 1
-                        else if (y === 29 && x === 24) row.push(-1); // Won't use
+                        else if (false) row.push(-1); // removed unused south exit
                         else if (x === 29 && y === 20) row.push(-3); // East exit to GymCity
                         else row.push(8);
                     }

@@ -90,7 +90,7 @@ var PlayerState = {
         if (this.inventory.potions <= 0) return false;
         var beast = this.team[beastIndex];
         if (!beast || beast.currentHP <= 0) return false;
-        var maxHP = this.calcStats(BEASTS[beast.id].baseStats, beast.level).hp + beast.level;
+        var maxHP = this.calcStats(BEASTS[beast.id].baseStats, beast.level).hp;
         beast.currentHP = Math.min(beast.currentHP + 20, maxHP);
         this.inventory.potions--;
         return true;

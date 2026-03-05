@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone Beasts - Test Suite</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: monospace; background: #1a1a2e; color: #ecf0f1; padding: 20px; font-size: 13px; }
+        h1 { color: #f1c40f; margin-bottom: 10px; }
+        #summary { font-size: 16px; padding: 12px; margin-bottom: 20px; border-radius: 6px; }
+        .suite { margin-bottom: 20px; }
+        .suite-header { color: #3498db; font-size: 15px; font-weight: bold; margin-bottom: 6px; border-bottom: 1px solid #34495e; padding-bottom: 4px; }
+        .test { padding: 3px 8px; margin: 1px 0; border-radius: 3px; }
+        .pass { color: #2ecc71; }
+        .fail { color: #e74c3c; background: rgba(231,76,60,0.1); }
+        .fail-detail { color: #e67e22; font-size: 11px; margin-left: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Phone Beasts Test Suite</h1>
+    <div id="summary"></div>
+    <div id="results"></div>
+
+    <!-- Load only data + engine (no Phaser needed) -->
+    <script src="js/data/moves.js"></script>
+    <script src="js/data/beasts.js"></script>
+    <script src="js/data/maps.js"></script>
+    <script src="js/engine/PlayerState.js"></script>
+    <script src="js/engine/BattleEngine.js"></script>
+
+    <script>
+    // ============================================================
+    // Minimal Test Runner
+    // ============================================================
+    var _passed = 0, _failed = 0, _results = '';
+    var _currentSuite = '';
+
+    function suite(name, fn) {
+        _results += '<div class="suite"><div class="suite-header">' + name + '</div>';
+        _currentSuite = name;
+        fn();
+        _results += '</div>';
+    }
+
+    function test(name, fn) {
+        try {
+            fn();
+            _passed++;
+            _results += '<div class="test pass">\u2713 ' + name + '</div>';
+        } catch(e) {
+            _failed++;
+            _results += '<div class="test fail">\u2717 ' + name + '</div>';
+            _results += '<div class="fail-detail">' + e.message + '</div>';
+        }
+    }
+
+    function assert(condition, msg) {
+        if (!condition) throw new Error(msg || 'Assertion failed');
+    }
+
+    function assertEqual(actual, expected, msg) {
+        if (actual !== expected) {
+            throw new Error((msg || 'assertEqual') + ': expected ' + JSON.stringify(expected) + ', got ' + JSON.stringify(actual));
+        }
+    }
+
+    function assertClose(actual, expected, tolerance, msg) {
+        if (Math.abs(actual - expected) > tolerance) {
+            throw new Error((msg || 'assertClose') + ': expected ~' + expected + ' (\u00b1' + tolerance + '), got ' + actual);
+        }
+    }
+
+    // Helper: reset PlayerState to clean defaults
+    function resetPlayerState() {
+        PlayerState.name = 'Trainer';
+        PlayerState.team = [];
+        PlayerState.inventory = { potions: 5, traps: 10 };
+        PlayerState.position = { map: 'town', x: 3, y: 5 };
+        PlayerState.badges = [];
+        PlayerState.defeatedTrainers = [];
+        PlayerState.hasStarter = false;
+    }
+
+    // ============================================================
+    // Suite 1: Data Integrity
+    // ============================================================
+    suite('1. Data Integrity', function() {
+
+        var expectedBeasts = ['emberon','tidalin','thornleaf','sparkit','pebblor','breezlet',
+                              'flickerbug','pudlop','vinewhip','dustmole','zappfly','shellbit'];
+        var validTypes = ['fire','water','grass','electric','ground','normal'];
+
+        test('1.1 All 12 beasts exist in BEASTS', function() {
+            for (var i = 0; i < expectedBeasts.length; i++) {
+                assert(BEASTS[expectedBeasts[i]], 'Missing beast: ' + expectedBeasts[i]);
+            }
+            var count = Object.keys(BEASTS).length;
+            assertEqual(count, 12, 'Beast count');
+        });
+
+        test('1.1 Each beast has required fields', function() {
+            for (var id in BEASTS) {
+                var b = BEASTS[id];
+                assert(b.id, id + ' missing id');
+                assert(b.name, id + ' missing name');
+                assert(b.type, id + ' missing type');
+                assert(b.baseStats, id + ' missing baseStats');
+                assert(b.baseStats.hp > 0, id + ' hp <= 0');
+                assert(b.baseStats.atk > 0, id + ' atk <= 0');
+                assert(b.baseStats.def > 0, id + ' def <= 0');
+                assert(b.baseStats.spd > 0, id + ' spd <= 0');
+                assert(b.baseXP > 0, id + ' baseXP <= 0');
+                assert(Array.isArray(b.defaultMoves), id + ' defaultMoves not array');
+                assert(b.learnableMoves !== undefined, id + ' missing learnableMoves');
+                assert(b.colors, id + ' missing colors');
+                assert(b.colors.primary, id + ' missing primary color');
+                assert(b.colors.secondary, id + ' missing secondary color');
+                assert(b.colors.accent, id + ' missing accent color');
+            }
+        });
+
+        test('1.1 Each beast type is valid', function() {
+            for (var id in BEASTS) {
+                assert(validTypes.indexOf(BEASTS[id].type) >= 0,
+                    id + ' has invalid type: ' + BEASTS[id].type);
+            }
+        });
+
+        test('1.1 Each beast has exactly 3 default moves', function() {
+            for (var id in BEASTS) {
+                assertEqual(BEASTS[id].defaultMoves.length, 3,
+                    id + ' default move count');
+            }
+        });
+
+        test('1.1 All default moves exist in MOVES', function() {
+            for (var id in BEASTS) {
+                var moves = BEASTS[id].defaultMoves;
+                for (var i = 0; i < moves.length; i++) {
+                    assert(MOVES[moves[i]], id + ' references missing move: ' + moves[i]);
+                }
+            }
+        });
+
+        test('1.1 All learnable moves exist in MOVES', function() {
+            for (var id in BEASTS) {
+                var lm = BEASTS[id].learnableMoves;
+                for (var lvl in lm) {
+                    assert(MOVES[lm[lvl]], id + ' learnable move missing: ' + lm[lvl] + ' at L' + lvl);
+                }
+            }
+        });
+
+        test('1.2 Each move has required fields', function() {
+            for (var id in MOVES) {
+                var m = MOVES[id];
+                assert(m.name, id + ' missing name');
+                assert(m.type, id + ' missing type');
+                assert(m.power >= 0, id + ' power < 0');
+                assert(m.accuracy >= 0 && m.accuracy <= 100, id + ' accuracy out of range');
+                assert(m.pp > 0, id + ' pp <= 0');
+            }
+        });
+
+        test('1.2 Status moves have valid effect objects', function() {
+            for (var id in MOVES) {
+                var m = MOVES[id];
+                if (m.power === 0 && m.effect) {
+                    assert(m.effect.stat, id + ' effect missing stat');
+                    assert(m.effect.target === 'self' || m.effect.target === 'enemy',
+                        id + ' effect.target invalid: ' + m.effect.target);
+                    assert(typeof m.effect.amount === 'number', id + ' effect.amount not number');
+                }
+            }
+        });
+
+        test('1.3 Encounter tables exist and are valid', function() {
+            assert(ENCOUNTERS.route1 && ENCOUNTERS.route1.length > 0, 'route1 encounters missing');
+            assert(ENCOUNTERS.worldMap && ENCOUNTERS.worldMap.length > 0, 'worldMap encounters missing');
+
+            var allEnc = ENCOUNTERS.route1.concat(ENCOUNTERS.worldMap);
+            for (var i = 0; i < allEnc.length; i++) {
+                var e = allEnc[i];
+                assert(BEASTS[e.id], 'Encounter references missing beast: ' + e.id);
+                assert(e.weight > 0, 'Encounter weight <= 0 for ' + e.id);
+                assert(e.minLevel <= e.maxLevel, 'minLevel > maxLevel for ' + e.id);
+            }
+        });
+
+        test('1.4 All trainers exist and are valid', function() {
+            var trainerKeys = ['route1_trainer1', 'route1_trainer2', 'gymLeader'];
+            for (var i = 0; i < trainerKeys.length; i++) {
+                var key = trainerKeys[i];
+                var t = TRAINERS[key];
+                assert(t, 'Missing trainer: ' + key);
+                assert(t.name, key + ' missing name');
+                assert(Array.isArray(t.dialog) && t.dialog.length > 0, key + ' missing dialog');
+                assert(Array.isArray(t.defeatDialog) && t.defeatDialog.length > 0, key + ' missing defeatDialog');
+                assert(Array.isArray(t.team) && t.team.length > 0, key + ' missing team');
+
+                for (var j = 0; j < t.team.length; j++) {
+                    var tm = t.team[j];
+                    assert(BEASTS[tm.id], key + ' team member references missing beast: ' + tm.id);
+                    for (var k = 0; k < tm.moves.length; k++) {
+                        assert(MOVES[tm.moves[k]], key + ' team member move missing: ' + tm.moves[k]);
+                    }
+                }
+            }
+        });
+
+        test('1.4 Gym leader has exactly 3 beasts', function() {
+            assertEqual(TRAINERS.gymLeader.team.length, 3, 'Gym leader team size');
+        });
+
+        test('1.5 All 4 maps exist', function() {
+            assert(MAPS.town, 'Missing town map');
+            assert(MAPS.route1, 'Missing route1 map');
+            assert(MAPS.worldMap, 'Missing worldMap map');
+            assert(MAPS.gymCity, 'Missing gymCity map');
+        });
+
+        test('1.5 Map data dimensions match width x height', function() {
+            for (var key in MAPS) {
+                var m = MAPS[key];
+                assertEqual(m.data.length, m.height, key + ' height mismatch');
+                for (var y = 0; y < m.data.length; y++) {
+                    assertEqual(m.data[y].length, m.width, key + ' row ' + y + ' width mismatch');
+                }
+            }
+        });
+
+        test('1.5 Exit targets reference valid maps with in-bounds coords', function() {
+            for (var key in MAPS) {
+                var exits = MAPS[key].exits;
+                for (var dir in exits) {
+                    var exit = exits[dir];
+                    assert(MAPS[exit.targetMap], key + ' exit ' + dir + ' targets missing map: ' + exit.targetMap);
+                    var target = MAPS[exit.targetMap];
+                    assert(exit.targetX >= 0 && exit.targetX < target.width,
+                        key + ' exit ' + dir + ' targetX out of bounds');
+                    assert(exit.targetY >= 0 && exit.targetY < target.height,
+                        key + ' exit ' + dir + ' targetY out of bounds');
+                }
+            }
+        });
+
+        test('1.5 Bidirectional exits: town<->route1, route1<->worldMap, worldMap<->gymCity', function() {
+            // town south -> route1, route1 north -> town
+            assert(MAPS.town.exits.south && MAPS.town.exits.south.targetMap === 'route1', 'town missing south->route1');
+            assert(MAPS.route1.exits.north && MAPS.route1.exits.north.targetMap === 'town', 'route1 missing north->town');
+            // route1 south -> worldMap, worldMap north -> route1
+            assert(MAPS.route1.exits.south && MAPS.route1.exits.south.targetMap === 'worldMap', 'route1 missing south->worldMap');
+            assert(MAPS.worldMap.exits.north && MAPS.worldMap.exits.north.targetMap === 'route1', 'worldMap missing north->route1');
+            // worldMap east -> gymCity, gymCity west -> worldMap
+            assert(MAPS.worldMap.exits.east && MAPS.worldMap.exits.east.targetMap === 'gymCity', 'worldMap missing east->gymCity');
+            assert(MAPS.gymCity.exits.west && MAPS.gymCity.exits.west.targetMap === 'worldMap', 'gymCity missing west->worldMap');
+        });
+
+        test('1.5 Player start tile (-10) exists in town', function() {
+            var found = false;
+            for (var y = 0; y < MAPS.town.data.length; y++) {
+                for (var x = 0; x < MAPS.town.data[y].length; x++) {
+                    if (MAPS.town.data[y][x] === -10) found = true;
+                }
+            }
+            assert(found, 'Player start tile -10 not found in town');
+        });
+    });
+
+    // ============================================================
+    // Suite 2: BattleEngine
+    // ============================================================
+    suite('2. BattleEngine', function() {
+
+        test('2.1 Type effectiveness: super effective (2x)', function() {
+            assertEqual(BattleEngine.getTypeMultiplier('fire', 'grass'), 2, 'fire>grass');
+            assertEqual(BattleEngine.getTypeMultiplier('water', 'fire'), 2, 'water>fire');
+            assertEqual(BattleEngine.getTypeMultiplier('grass', 'water'), 2, 'grass>water');
+            assertEqual(BattleEngine.getTypeMultiplier('electric', 'water'), 2, 'electric>water');
+            assertEqual(BattleEngine.getTypeMultiplier('ground', 'electric'), 2, 'ground>electric');
+        });
+
+        test('2.1 Type effectiveness: not very effective (0.5x)', function() {
+            assertEqual(BattleEngine.getTypeMultiplier('fire', 'water'), 0.5, 'fire vs water');
+            assertEqual(BattleEngine.getTypeMultiplier('water', 'grass'), 0.5, 'water vs grass');
+            assertEqual(BattleEngine.getTypeMultiplier('grass', 'fire'), 0.5, 'grass vs fire');
+            assertEqual(BattleEngine.getTypeMultiplier('electric', 'ground'), 0.5, 'electric vs ground');
+        });
+
+        test('2.1 Normal is neutral (1x) against everything', function() {
+            var types = ['fire','water','grass','electric','ground','normal'];
+            for (var i = 0; i < types.length; i++) {
+                assertEqual(BattleEngine.getTypeMultiplier('normal', types[i]), 1, 'normal vs ' + types[i]);
+            }
+        });
+
+        test('2.1 Unknown type returns 1x', function() {
+            assertEqual(BattleEngine.getTypeMultiplier('fairy', 'fire'), 1);
+        });
+
+        test('2.2 Status move (power=0) returns 0 damage', function() {
+            var attacker = { level: 10, stats: { atk: 50, spd: 30 }, type: 'normal' };
+            var defender = { stats: { def: 40, spd: 30 }, type: 'normal' };
+            assertEqual(BattleEngine.calcDamage(attacker, MOVES.growl, defender, {}, {}), 0);
+        });
+
+        test('2.2 Damage is always >= 1', function() {
+            var attacker = { level: 1, stats: { atk: 1, spd: 10 }, type: 'normal' };
+            var defender = { stats: { def: 999, spd: 10 }, type: 'normal' };
+            for (var i = 0; i < 20; i++) {
+                var dmg = BattleEngine.calcDamage(attacker, MOVES.tackle, defender, {}, {});
+                assert(dmg >= 1, 'Damage was ' + dmg);
+            }
+        });
+
+        test('2.2 Higher ATK produces higher average damage', function() {
+            var weak = { level: 10, stats: { atk: 30, spd: 30 }, type: 'normal' };
+            var strong = { level: 10, stats: { atk: 80, spd: 30 }, type: 'normal' };
+            var defender = { stats: { def: 40, spd: 30 }, type: 'normal' };
+            var sumWeak = 0, sumStrong = 0, n = 200;
+            for (var i = 0; i < n; i++) {
+                sumWeak += BattleEngine.calcDamage(weak, MOVES.tackle, defender, {}, {});
+                sumStrong += BattleEngine.calcDamage(strong, MOVES.tackle, defender, {}, {});
+            }
+            assert(sumStrong / n > sumWeak / n, 'Strong ATK avg (' + (sumStrong/n).toFixed(1) + ') should > weak (' + (sumWeak/n).toFixed(1) + ')');
+        });
+
+        test('2.2 Higher DEF reduces average damage', function() {
+            var attacker = { level: 10, stats: { atk: 50, spd: 30 }, type: 'normal' };
+            var weakDef = { stats: { def: 20, spd: 30 }, type: 'normal' };
+            var strongDef = { stats: { def: 80, spd: 30 }, type: 'normal' };
+            var sumWeak = 0, sumStrong = 0, n = 200;
+            for (var i = 0; i < n; i++) {
+                sumWeak += BattleEngine.calcDamage(attacker, MOVES.tackle, weakDef, {}, {});
+                sumStrong += BattleEngine.calcDamage(attacker, MOVES.tackle, strongDef, {}, {});
+            }
+            assert(sumWeak / n > sumStrong / n, 'Weak DEF takes more damage');
+        });
+
+        test('2.2 Super effective ~doubles average damage', function() {
+            var attacker = { level: 10, stats: { atk: 50, spd: 30 }, type: 'normal' };
+            var neutralDef = { stats: { def: 40, spd: 30 }, type: 'normal' };
+            var weakDef = { stats: { def: 40, spd: 30 }, type: 'grass' };
+            var sumN = 0, sumSE = 0, n = 300;
+            for (var i = 0; i < n; i++) {
+                sumN += BattleEngine.calcDamage(attacker, MOVES.ember, neutralDef, {}, {});
+                sumSE += BattleEngine.calcDamage(attacker, MOVES.ember, weakDef, {}, {});
+            }
+            var ratio = (sumSE / n) / (sumN / n);
+            assertClose(ratio, 2.0, 0.3, 'SE/Neutral ratio');
+        });
+
+        test('2.2 STAB bonus ~1.5x', function() {
+            var fireUser = { level: 10, stats: { atk: 50, spd: 30 }, type: 'fire' };
+            var normalUser = { level: 10, stats: { atk: 50, spd: 30 }, type: 'normal' };
+            var defender = { stats: { def: 40, spd: 30 }, type: 'ground' };
+            var sumStab = 0, sumNoStab = 0, n = 300;
+            for (var i = 0; i < n; i++) {
+                sumStab += BattleEngine.calcDamage(fireUser, MOVES.ember, defender, {}, {});
+                sumNoStab += BattleEngine.calcDamage(normalUser, MOVES.ember, defender, {}, {});
+            }
+            var ratio = (sumStab / n) / (sumNoStab / n);
+            assertClose(ratio, 1.5, 0.25, 'STAB ratio');
+        });
+
+        test('2.2 ATK/DEF buffs affect damage', function() {
+            var attacker = { level: 10, stats: { atk: 50, spd: 30 }, type: 'normal' };
+            var defender = { stats: { def: 40, spd: 30 }, type: 'normal' };
+            var sumBase = 0, sumBuffed = 0, n = 200;
+            for (var i = 0; i < n; i++) {
+                sumBase += BattleEngine.calcDamage(attacker, MOVES.tackle, defender, {}, {});
+                sumBuffed += BattleEngine.calcDamage(attacker, MOVES.tackle, defender, { atk: 0.4 }, {});
+            }
+            assert(sumBuffed / n > sumBase / n, 'ATK buff should increase damage');
+        });
+
+        test('2.3 100% accuracy always hits', function() {
+            var move = { accuracy: 100 };
+            for (var i = 0; i < 50; i++) {
+                assert(BattleEngine.checkAccuracy(move, {}, {}), 'Missed with 100 accuracy');
+            }
+        });
+
+        test('2.3 0% accuracy never hits', function() {
+            var move = { accuracy: 0 };
+            for (var i = 0; i < 50; i++) {
+                assert(!BattleEngine.checkAccuracy(move, {}, {}), 'Hit with 0 accuracy');
+            }
+        });
+
+        test('2.4 Move with no effect returns null', function() {
+            var result = BattleEngine.applyStatusEffect(MOVES.tackle, {}, {}, {}, {});
+            assertEqual(result, null);
+        });
+
+        test('2.4 Self-buff modifies attackerBuffs', function() {
+            var atkBuffs = {};
+            var result = BattleEngine.applyStatusEffect(MOVES.shellGuard, {}, {}, atkBuffs, {});
+            assertEqual(result.target, 'self');
+            assertEqual(result.stat, 'def');
+            assertClose(atkBuffs.def, 0.2, 0.001, 'def buff');
+        });
+
+        test('2.4 Enemy debuff modifies defenderBuffs', function() {
+            var defBuffs = {};
+            var result = BattleEngine.applyStatusEffect(MOVES.growl, {}, {}, {}, defBuffs);
+            assertEqual(result.target, 'enemy');
+            assertEqual(result.stat, 'atk');
+            assertClose(defBuffs.atk, -0.1, 0.001, 'atk debuff');
+        });
+
+        test('2.4 Status effects stack', function() {
+            var atkBuffs = {};
+            BattleEngine.applyStatusEffect(MOVES.shellGuard, {}, {}, atkBuffs, {});
+            BattleEngine.applyStatusEffect(MOVES.shellGuard, {}, {}, atkBuffs, {});
+            assertClose(atkBuffs.def, 0.4, 0.001, 'stacked def buff');
+        });
+
+        test('2.5 Faster beast goes first', function() {
+            var fast = { stats: { spd: 60 } };
+            var slow = { stats: { spd: 30 } };
+            for (var i = 0; i < 20; i++) {
+                assertEqual(BattleEngine.determineTurnOrder(fast, slow, {}, {}), 1, 'Fast should go first');
+            }
+        });
+
+        test('2.5 Equal speed is non-deterministic', function() {
+            var a = { stats: { spd: 50 } };
+            var b = { stats: { spd: 50 } };
+            var saw1 = false, saw2 = false;
+            for (var i = 0; i < 100; i++) {
+                var r = BattleEngine.determineTurnOrder(a, b, {}, {});
+                if (r === 1) saw1 = true;
+                if (r === 2) saw2 = true;
+            }
+            assert(saw1 && saw2, 'Equal speed should produce both outcomes');
+        });
+
+        test('2.5 Speed buff affects turn order', function() {
+            var a = { stats: { spd: 40 } };
+            var b = { stats: { spd: 50 } };
+            // Without buff: b goes first
+            assertEqual(BattleEngine.determineTurnOrder(a, b, {}, {}), 2);
+            // With buff: a goes first (40 * 1.5 = 60 > 50)
+            assertEqual(BattleEngine.determineTurnOrder(a, b, { spd: 0.5 }, {}), 1);
+        });
+
+        test('2.6 XP calculation formula', function() {
+            var beast = { id: 'emberon', level: 10 };
+            // baseXP=64, level=10 -> floor(64*10/5) = 128
+            assertEqual(BattleEngine.calcXPGain(beast), 128);
+        });
+
+        test('2.6 Unknown beast XP returns 10', function() {
+            assertEqual(BattleEngine.calcXPGain({ id: 'nonexistent', level: 5 }), 10);
+        });
+
+        test('2.7 Catch chance at full HP near minimum', function() {
+            var beast = PlayerState.createBeastInstance('sparkit', 5);
+            var chance = BattleEngine.calcCatchChance(beast);
+            // Full HP: (1-1)*0.5+0.1 = 0.1
+            assertClose(chance, 0.1, 0.02, 'Full HP catch chance');
+        });
+
+        test('2.7 Catch chance at low HP is higher', function() {
+            var beast = PlayerState.createBeastInstance('sparkit', 5);
+            beast.currentHP = 1;
+            var chance = BattleEngine.calcCatchChance(beast);
+            assert(chance > 0.4, 'Low HP catch chance should be > 0.4, got ' + chance);
+        });
+
+        test('2.7 Catch chance clamped between 0.1 and 0.9', function() {
+            var beast = PlayerState.createBeastInstance('sparkit', 5);
+            var chFull = BattleEngine.calcCatchChance(beast);
+            beast.currentHP = 0;
+            var chZero = BattleEngine.calcCatchChance(beast);
+            assert(chFull >= 0.1 && chFull <= 0.9, 'Full HP chance out of range');
+            assert(chZero >= 0.1 && chZero <= 0.9, 'Zero HP chance out of range');
+        });
+
+        test('2.8 Effectiveness text', function() {
+            assert(BattleEngine.getEffectivenessText(2).indexOf('super effective') >= 0);
+            assert(BattleEngine.getEffectivenessText(0.5).indexOf('not very effective') >= 0);
+            assertEqual(BattleEngine.getEffectivenessText(1), '');
+        });
+
+        test('2.9 generateWildBeast returns valid beast for route1', function() {
+            var beast = BattleEngine.generateWildBeast('route1');
+            assert(beast, 'Should return a beast');
+            assert(beast.id, 'Should have id');
+            assert(beast.stats, 'Should have stats');
+            assert(beast.currentHP > 0, 'Should have HP');
+            assert(beast.moves.length > 0, 'Should have moves');
+        });
+
+        test('2.9 generateWildBeast returns null for invalid location', function() {
+            assertEqual(BattleEngine.generateWildBeast('nonexistent'), null);
+        });
+
+        test('2.9 Wild beast level within encounter range', function() {
+            for (var i = 0; i < 50; i++) {
+                var beast = BattleEngine.generateWildBeast('route1');
+                // Route 1 levels: 2-6
+                assert(beast.level >= 2 && beast.level <= 6,
+                    'Level ' + beast.level + ' out of route1 range (2-6)');
+            }
+        });
+
+        test('2.10 createTrainerTeam for gymLeader returns 3 beasts', function() {
+            var team = BattleEngine.createTrainerTeam('gymLeader');
+            assertEqual(team.length, 3, 'Gym leader team size');
+            assertEqual(team[0].id, 'pudlop');
+            assertEqual(team[0].level, 12);
+            assertEqual(team[1].id, 'shellbit');
+            assertEqual(team[1].level, 13);
+            assertEqual(team[2].id, 'tidalin');
+            assertEqual(team[2].level, 15);
+        });
+
+        test('2.10 createTrainerTeam for nonexistent returns empty', function() {
+            var team = BattleEngine.createTrainerTeam('nonexistent');
+            assertEqual(team.length, 0);
+        });
+    });
+
+    // ============================================================
+    // Suite 3: PlayerState
+    // ============================================================
+    suite('3. PlayerState', function() {
+
+        test('3.1 calcStats at level 1 equals base values', function() {
+            var base = { hp: 45, atk: 52, def: 38, spd: 45 };
+            var stats = PlayerState.calcStats(base, 1);
+            // level 1: floor(base * (1 + 0*0.08)) + 1 for HP
+            assertEqual(stats.hp, 45 + 1, 'HP at L1'); // base + level
+            assertEqual(stats.atk, 52, 'ATK at L1');
+            assertEqual(stats.def, 38, 'DEF at L1');
+            assertEqual(stats.spd, 45, 'SPD at L1');
+        });
+
+        test('3.1 calcStats at level 5: correct formula', function() {
+            var base = { hp: 45, atk: 52, def: 38, spd: 45 };
+            var stats = PlayerState.calcStats(base, 5);
+            // floor(45 * (1 + 4*0.08)) + 5 = floor(45 * 1.32) + 5 = 59 + 5 = 64
+            assertEqual(stats.hp, Math.floor(45 * 1.32) + 5, 'HP at L5');
+            assertEqual(stats.atk, Math.floor(52 * 1.32), 'ATK at L5');
+        });
+
+        test('3.1 Stats increase monotonically with level', function() {
+            var base = { hp: 45, atk: 52, def: 38, spd: 45 };
+            var prev = PlayerState.calcStats(base, 1);
+            for (var lvl = 2; lvl <= 50; lvl++) {
+                var cur = PlayerState.calcStats(base, lvl);
+                assert(cur.hp >= prev.hp, 'HP decreased at L' + lvl);
+                assert(cur.atk >= prev.atk, 'ATK decreased at L' + lvl);
+                assert(cur.def >= prev.def, 'DEF decreased at L' + lvl);
+                assert(cur.spd >= prev.spd, 'SPD decreased at L' + lvl);
+                prev = cur;
+            }
+        });
+
+        test('3.2 createBeastInstance returns valid object', function() {
+            var beast = PlayerState.createBeastInstance('emberon', 5);
+            assert(beast, 'Should return beast');
+            assertEqual(beast.id, 'emberon');
+            assertEqual(beast.name, 'Emberon');
+            assertEqual(beast.type, 'fire');
+            assertEqual(beast.level, 5);
+            assertEqual(beast.xp, 0);
+            assert(beast.stats.hp > 0, 'HP > 0');
+            assertEqual(beast.currentHP, beast.stats.hp, 'currentHP = maxHP');
+        });
+
+        test('3.2 createBeastInstance uses default moves', function() {
+            var beast = PlayerState.createBeastInstance('emberon', 5);
+            assertEqual(beast.moves.length, 3);
+            assertEqual(beast.moves[0], 'tackle');
+            assertEqual(beast.moves[1], 'ember');
+            assertEqual(beast.moves[2], 'growl');
+        });
+
+        test('3.2 createBeastInstance uses custom moves', function() {
+            var beast = PlayerState.createBeastInstance('emberon', 5, ['flameClaw', 'inferno']);
+            assertEqual(beast.moves.length, 2);
+            assertEqual(beast.moves[0], 'flameClaw');
+            assertEqual(beast.moves[1], 'inferno');
+        });
+
+        test('3.2 createBeastInstance caps moves at 4', function() {
+            var beast = PlayerState.createBeastInstance('emberon', 5, ['tackle','ember','growl','flameClaw','inferno']);
+            assertEqual(beast.moves.length, 4);
+        });
+
+        test('3.2 createBeastInstance initializes PP', function() {
+            var beast = PlayerState.createBeastInstance('emberon', 5);
+            assertEqual(beast.pp.tackle, 35);
+            assertEqual(beast.pp.ember, 25);
+            assertEqual(beast.pp.growl, 40);
+        });
+
+        test('3.2 createBeastInstance returns null for invalid ID', function() {
+            assertEqual(PlayerState.createBeastInstance('fakebeast', 5), null);
+        });
+
+        test('3.3 addBeastToTeam succeeds up to 6', function() {
+            resetPlayerState();
+            for (var i = 0; i < 6; i++) {
+                var beast = PlayerState.createBeastInstance('emberon', 5);
+                assertEqual(PlayerState.addBeastToTeam(beast), true, 'Add beast ' + (i+1));
+            }
+            assertEqual(PlayerState.team.length, 6);
+        });
+
+        test('3.3 addBeastToTeam fails at 6', function() {
+            resetPlayerState();
+            for (var i = 0; i < 6; i++) {
+                PlayerState.addBeastToTeam(PlayerState.createBeastInstance('emberon', 5));
+            }
+            var result = PlayerState.addBeastToTeam(PlayerState.createBeastInstance('emberon', 5));
+            assertEqual(result, false, 'Should fail at 6');
+            assertEqual(PlayerState.team.length, 6, 'Team stays at 6');
+        });
+
+        test('3.3 getFirstAliveBeast returns correct index', function() {
+            resetPlayerState();
+            var b1 = PlayerState.createBeastInstance('emberon', 5);
+            var b2 = PlayerState.createBeastInstance('tidalin', 5);
+            b1.currentHP = 0;
+            PlayerState.addBeastToTeam(b1);
+            PlayerState.addBeastToTeam(b2);
+            assertEqual(PlayerState.getFirstAliveBeast(), 1, 'Should return index 1');
+        });
+
+        test('3.3 getFirstAliveBeast returns -1 when all fainted', function() {
+            resetPlayerState();
+            var b1 = PlayerState.createBeastInstance('emberon', 5);
+            b1.currentHP = 0;
+            PlayerState.addBeastToTeam(b1);
+            assertEqual(PlayerState.getFirstAliveBeast(), -1);
+        });
+
+        test('3.4 healAll restores HP and PP', function() {
+            resetPlayerState();
+            var beast = PlayerState.createBeastInstance('emberon', 5);
+            beast.currentHP = 1;
+            beast.pp.tackle = 0;
+            beast.pp.ember = 0;
+            PlayerState.addBeastToTeam(beast);
+
+            PlayerState.healAll();
+
+            assertEqual(PlayerState.team[0].currentHP, PlayerState.team[0].stats.hp);
+            assertEqual(PlayerState.team[0].pp.tackle, 35);
+            assertEqual(PlayerState.team[0].pp.ember, 25);
+        });
+
+        test('3.5 usePotion heals 20 HP', function() {
+            resetPlayerState();
+            var beast = PlayerState.createBeastInstance('emberon', 5);
+            var maxHP = beast.stats.hp;
+            beast.currentHP = maxHP - 30;
+            PlayerState.addBeastToTeam(beast);
+
+            var result = PlayerState.usePotion(0);
+            assertEqual(result, true);
+            assertEqual(PlayerState.team[0].currentHP, maxHP - 10);
+            assertEqual(PlayerState.inventory.potions, 4);
+        });
+
+        test('3.5 usePotion caps at max HP', function() {
+            resetPlayerState();
+            var beast = PlayerState.createBeastInstance('emberon', 5);
+            var maxHP = beast.stats.hp;
+            beast.currentHP = maxHP - 5;
+            PlayerState.addBeastToTeam(beast);
+
+            PlayerState.usePotion(0);
+            // maxHP calculated as calcStats().hp + level in usePotion
+            var expectedMax = PlayerState.calcStats(BEASTS.emberon.baseStats, beast.level).hp + beast.level;
+            assert(PlayerState.team[0].currentHP <= expectedMax, 'HP exceeded max');
+        });
+
+        test('3.5 usePotion fails with 0 potions', function() {
+            resetPlayerState();
+            PlayerState.inventory.potions = 0;
+            var beast = PlayerState.createBeastInstance('emberon', 5);
+            beast.currentHP = 10;
+            PlayerState.addBeastToTeam(beast);
+            assertEqual(PlayerState.usePotion(0), false);
+        });
+
+        test('3.5 usePotion fails on fainted beast', function() {
+            resetPlayerState();
+            var beast = PlayerState.createBeastInstance('emberon', 5);
+            beast.currentHP = 0;
+            PlayerState.addBeastToTeam(beast);
+            assertEqual(PlayerState.usePotion(0), false);
+        });
+
+        test('3.6 addXP accumulates correctly', function() {
+            resetPlayerState();
+            var beast = PlayerState.createBeastInstance('emberon', 5);
+            PlayerState.addBeastToTeam(beast);
+
+            PlayerState.addXP(0, 50);
+            assertEqual(PlayerState.team[0].xp, 50);
+        });
+
+        test('3.6 Level up triggers at threshold', function() {
+            resetPlayerState();
+            var beast = PlayerState.createBeastInstance('emberon', 5);
+            PlayerState.addBeastToTeam(beast);
+            // xpToNext at L5 = 6^3 = 216
+            assertEqual(beast.xpToNext, 216);
+
+            var result = PlayerState.addXP(0, 216);
+            assertEqual(result.leveledUp, true);
+            assertEqual(PlayerState.team[0].level, 6);
+        });
+
+        test('3.6 Multiple level-ups in one call', function() {
+            resetPlayerState();
+            var beast = PlayerState.createBeastInstance('emberon', 5);
+            PlayerState.addBeastToTeam(beast);
+            // Give massive XP: L5->L6 needs 216, L6->L7 needs 343 = 559 total
+            var result = PlayerState.addXP(0, 600);
+            assert(PlayerState.team[0].level >= 7, 'Should be at least L7, got L' + PlayerState.team[0].level);
+            assertEqual(result.leveledUp, true);
+        });
+
+        test('3.6 Stats recalculated on level up', function() {
+            resetPlayerState();
+            var beast = PlayerState.createBeastInstance('emberon', 5);
+            var oldAtk = beast.stats.atk;
+            PlayerState.addBeastToTeam(beast);
+
+            PlayerState.addXP(0, 216); // Level to 6
+            assert(PlayerState.team[0].stats.atk > oldAtk, 'ATK should increase on level up');
+        });
+
+        test('3.6 HP healed by level-up gain', function() {
+            resetPlayerState();
+            var beast = PlayerState.createBeastInstance('emberon', 5);
+            var fullHP = beast.stats.hp;
+            beast.currentHP = fullHP - 5; // Take 5 damage
+            PlayerState.addBeastToTeam(beast);
+
+            var oldHP = beast.currentHP;
+            PlayerState.addXP(0, 216); // Level to 6
+
+            // HP should have gained the difference in max HP
+            assert(PlayerState.team[0].currentHP > oldHP, 'HP should increase from level gain');
+        });
+
+        test('3.6 New moves returned at learn level', function() {
+            resetPlayerState();
+            var beast = PlayerState.createBeastInstance('emberon', 9);
+            PlayerState.addBeastToTeam(beast);
+            // Emberon learns flameClaw at L10
+            // L9->L10 needs 10^3 = 1000, but xpToNext = (9+1)^3 = 1000
+            var result = PlayerState.addXP(0, 1000);
+            assert(result.leveledUp, 'Should level up');
+            assert(result.newMoves.length > 0, 'Should have new moves');
+            assertEqual(result.newMoves[0].move, 'flameClaw');
+        });
+
+        test('3.6 Level capped at 50', function() {
+            resetPlayerState();
+            var beast = PlayerState.createBeastInstance('emberon', 49);
+            PlayerState.addBeastToTeam(beast);
+            PlayerState.addXP(0, 999999);
+            assertEqual(PlayerState.team[0].level, 50);
+        });
+
+        test('3.7 learnMove adds when < 4 moves', function() {
+            resetPlayerState();
+            var beast = PlayerState.createBeastInstance('emberon', 5);
+            PlayerState.addBeastToTeam(beast);
+            // Has 3 moves, add a 4th
+            PlayerState.learnMove(0, 'flameClaw', -1);
+            assertEqual(PlayerState.team[0].moves.length, 4);
+            assertEqual(PlayerState.team[0].moves[3], 'flameClaw');
+            assertEqual(PlayerState.team[0].pp.flameClaw, 15);
+        });
+
+        test('3.7 learnMove replaces at index', function() {
+            resetPlayerState();
+            var beast = PlayerState.createBeastInstance('emberon', 5, ['tackle', 'ember', 'growl', 'flameClaw']);
+            PlayerState.addBeastToTeam(beast);
+            PlayerState.learnMove(0, 'inferno', 2); // Replace growl
+            assertEqual(PlayerState.team[0].moves[2], 'inferno');
+            assertEqual(PlayerState.team[0].pp.inferno, 5);
+        });
+
+        test('3.8 Save/Load round-trip', function() {
+            resetPlayerState();
+            PlayerState.name = 'TestPlayer';
+            var beast = PlayerState.createBeastInstance('emberon', 7);
+            beast.currentHP = 20;
+            PlayerState.addBeastToTeam(beast);
+            PlayerState.inventory.potions = 3;
+            PlayerState.badges.push('tidepool');
+            PlayerState.defeatedTrainers.push('route1_trainer1');
+            PlayerState.position = { map: 'route1', x: 5, y: 10 };
+            PlayerState.hasStarter = true;
+
+            PlayerState.save();
+
+            // Reset
+            resetPlayerState();
+            assertEqual(PlayerState.name, 'Trainer'); // Verify reset
+
+            // Load
+            var loaded = PlayerState.load();
+            assertEqual(loaded, true, 'load() should return true');
+            assertEqual(PlayerState.name, 'TestPlayer');
+            assertEqual(PlayerState.team.length, 1);
+            assertEqual(PlayerState.team[0].id, 'emberon');
+            assertEqual(PlayerState.team[0].currentHP, 20);
+            assertEqual(PlayerState.inventory.potions, 3);
+            assertEqual(PlayerState.badges[0], 'tidepool');
+            assertEqual(PlayerState.defeatedTrainers[0], 'route1_trainer1');
+            assertEqual(PlayerState.position.map, 'route1');
+            assertEqual(PlayerState.hasStarter, true);
+
+            PlayerState.clearSave();
+        });
+
+        test('3.8 load() returns false with no save', function() {
+            PlayerState.clearSave();
+            assertEqual(PlayerState.load(), false);
+        });
+
+        test('3.8 clearSave removes data', function() {
+            PlayerState.save();
+            PlayerState.clearSave();
+            assertEqual(PlayerState.load(), false);
+        });
+    });
+
+    // ============================================================
+    // Suite 4: Map Structural Integrity
+    // ============================================================
+    suite('4. Map Structural Integrity', function() {
+
+        var blockingTiles = [3, 4, 5, 8, 10]; // water, wall, roof, tree, fence
+        var blockingNpcs = [-11, -12, -13, -14, -15, -16];
+        var walkableTiles = [0, 1, 2, 6, 7, 11]; // grass, path, tallgrass, door, floor, flowers
+
+        test('4.1 Collision logic: walkable tiles are not blocking', function() {
+            for (var i = 0; i < walkableTiles.length; i++) {
+                assert(blockingTiles.indexOf(walkableTiles[i]) === -1,
+                    'Tile ' + walkableTiles[i] + ' appears in both walkable and blocking');
+            }
+        });
+
+        test('4.2 Map connectivity: town<->route1', function() {
+            var townExit = MAPS.town.exits.south;
+            var routeExit = MAPS.route1.exits.north;
+            assertEqual(townExit.targetMap, 'route1');
+            assertEqual(routeExit.targetMap, 'town');
+        });
+
+        test('4.2 Map connectivity: route1<->worldMap', function() {
+            var routeExit = MAPS.route1.exits.south;
+            var worldExit = MAPS.worldMap.exits.north;
+            assertEqual(routeExit.targetMap, 'worldMap');
+            assertEqual(worldExit.targetMap, 'route1');
+        });
+
+        test('4.2 Map connectivity: worldMap<->gymCity', function() {
+            var worldExit = MAPS.worldMap.exits.east;
+            var gymExit = MAPS.gymCity.exits.west;
+            assertEqual(worldExit.targetMap, 'gymCity');
+            assertEqual(gymExit.targetMap, 'worldMap');
+        });
+
+        test('4.2 Exit tiles in map data have matching config', function() {
+            var exitTileToDir = { '-1': 'south', '-2': 'north', '-3': 'east', '-4': 'west' };
+            for (var key in MAPS) {
+                var m = MAPS[key];
+                for (var y = 0; y < m.data.length; y++) {
+                    for (var x = 0; x < m.data[y].length; x++) {
+                        var tile = m.data[y][x];
+                        var dir = exitTileToDir[String(tile)];
+                        if (dir) {
+                            assert(m.exits && m.exits[dir],
+                                key + ' has exit tile ' + tile + ' at (' + x + ',' + y + ') but no exits.' + dir + ' config');
+                        }
+                    }
+                }
+            }
+        });
+
+        test('4.3 Player start in town is on a walkable position', function() {
+            // Player starts at position from PlayerState defaults: x=3, y=5
+            // But the map has -10 at player start, which is rendered as grass (walkable)
+            var tile = MAPS.town.data[5][3];
+            // -10 is player start, which gets rendered as grass
+            assert(tile === -10 || walkableTiles.indexOf(tile) >= 0,
+                'Player start tile should be walkable, got ' + tile);
+        });
+
+        test('4.3 Path exists from player start to town south exit (BFS)', function() {
+            var map = MAPS.town;
+            var startX = 3, startY = 5; // Player start
+            // Find south exit position
+            var exitX = -1, exitY = -1;
+            for (var y = 0; y < map.data.length; y++) {
+                for (var x = 0; x < map.data[y].length; x++) {
+                    if (map.data[y][x] === -1) { exitX = x; exitY = y; break; }
+                }
+                if (exitX >= 0) break;
+            }
+            assert(exitX >= 0, 'South exit not found');
+
+            // BFS
+            var visited = {};
+            var queue = [[startX, startY]];
+            visited[startX + ',' + startY] = true;
+            var found = false;
+            var dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+
+            while (queue.length > 0 && !found) {
+                var pos = queue.shift();
+                if (pos[0] === exitX && pos[1] === exitY) { found = true; break; }
+
+                for (var d = 0; d < dirs.length; d++) {
+                    var nx = pos[0] + dirs[d][0];
+                    var ny = pos[1] + dirs[d][1];
+                    var key = nx + ',' + ny;
+                    if (visited[key]) continue;
+                    if (ny < 0 || ny >= map.height || nx < 0 || nx >= map.width) continue;
+
+                    var tile = map.data[ny][nx];
+                    // Walkable: not blocking tile and not blocking NPC
+                    var isBlocking = blockingTiles.indexOf(tile) >= 0;
+                    // NPCs block but we can walk around them
+                    if (!isBlocking || tile === -1) {
+                        visited[key] = true;
+                        queue.push([nx, ny]);
+                    }
+                }
+            }
+
+            assert(found, 'No path from player start (' + startX + ',' + startY + ') to south exit (' + exitX + ',' + exitY + ')');
+        });
+
+        test('4.3 Each map has at least one exit', function() {
+            for (var key in MAPS) {
+                var exits = MAPS[key].exits;
+                assert(exits && Object.keys(exits).length > 0, key + ' has no exits');
+            }
+        });
+    });
+
+    // ============================================================
+    // Render Results
+    // ============================================================
+    resetPlayerState(); // Clean up after tests
+    PlayerState.clearSave();
+
+    var summaryEl = document.getElementById('summary');
+    var total = _passed + _failed;
+    summaryEl.innerHTML = '<strong>' + _passed + ' passed</strong>, <strong>' + _failed + ' failed</strong> out of ' + total + ' tests';
+    summaryEl.style.background = _failed === 0 ? 'rgba(46,204,113,0.2)' : 'rgba(231,76,60,0.2)';
+    summaryEl.style.border = '2px solid ' + (_failed === 0 ? '#2ecc71' : '#e74c3c');
+    summaryEl.style.color = _failed === 0 ? '#2ecc71' : '#e74c3c';
+
+    document.getElementById('results').innerHTML = _results;
+
+    // Also log to console
+    console.log('Phone Beasts Tests: ' + _passed + ' passed, ' + _failed + ' failed');
+    </script>
+</body>
+</html>
