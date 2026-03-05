@@ -158,8 +158,9 @@ var BattleScene = new Phaser.Class({
         }
 
         var self = this;
-        this.actionMenu = BattleUI.drawActionMenu(this, cam.width - 140, cam.height - 130, options, function(idx) {
+        this.actionMenu = BattleUI.drawActionMenu(this, 0, 0, options, function(idx) {
             self.awaitingInput = false;
+            BattleUI.clearMenu();
             if (self.actionMenu) self.actionMenu.destroy();
             self.actionMenu = null;
 
@@ -178,6 +179,7 @@ var BattleScene = new Phaser.Class({
         var self = this;
 
         this.moveMenu = BattleUI.drawMoveMenu(this, playerBeast, 8, cam.height - 100, function(moveIdx) {
+            BattleUI.clearMenu();
             if (self.moveMenu) self.moveMenu.destroy();
             self.moveMenu = null;
 
@@ -740,6 +742,19 @@ var BattleScene = new Phaser.Class({
                     this.inputCooldown = 150;
                 }
             }
+            return;
+        }
+
+        // Battle menu d-pad/A/B input
+        if (BattleUI.activeMenu) {
+            var result = BattleUI.handleInput();
+            if (result === 'back') {
+                // B pressed on move menu — go back to action menu
+                if (this.moveMenu) this.moveMenu.destroy();
+                this.moveMenu = null;
+                this._showActionMenu();
+            }
+            if (result) this.inputCooldown = 150;
         }
     }
 });
