@@ -141,9 +141,15 @@ var StarterSelectScene = new Phaser.Class({
                     "Now head out and start your adventure!",
                     "But be careful in the tall grass - wild Beasts lurk there!"
                 ], function() {
+                    // Return to Elm's lab
+                    PlayerState.position.map = 'elmLab';
+                    PlayerState.position.x = 5;
+                    PlayerState.position.y = 6;
+                    PlayerState.save();
+
                     self.cameras.main.fadeOut(800, 0, 0, 0);
                     self.time.delayedCall(800, function() {
-                        self.scene.start('TownScene');
+                        self.scene.start('InteriorScene');
                     });
                 });
             }

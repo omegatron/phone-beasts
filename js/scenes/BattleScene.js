@@ -208,12 +208,28 @@ var BattleScene = new Phaser.Class({
 
     _useBag: function() {
         var self = this;
+        var totalOrbs = PlayerState.getTotalOrbs();
 
-        if (this.battleType === 'wild' && PlayerState.inventory.traps > 0) {
-            DialogManager.showChoice('Use item:', ['Potion (' + PlayerState.inventory.potions + ')', 'Trap (' + PlayerState.inventory.traps + ')', 'Cancel'], function(idx) {
-                if (idx === 0) self._usePotion();
-                else if (idx === 1) self._useTrap();
-                else self._showActionMenu();
+        if (this.battleType === 'wild' && totalOrbs > 0) {
+            var orbOptions = [];
+            var orbActions = [];
+
+            orbOptions.push('Potion (' + PlayerState.inventory.potions + ')');
+            orbActions.push(function() { self._usePotion(); });
+
+            if (PlayerState.inventory.friendshipOrbs > 0) {
+                orbOptions.push('Friendship Orb (' + PlayerState.inventory.friendshipOrbs + ')');
+                orbActions.push(function() { self._useFriendshipOrb('friendship'); });
+            }
+            if (PlayerState.inventory.simpleFriendshipOrbs > 0) {
+                orbOptions.push('Simple Orb (' + PlayerState.inventory.simpleFriendshipOrbs + ')');
+                orbActions.push(function() { self._useFriendshipOrb('simple'); });
+            }
+            orbOptions.push('Cancel');
+            orbActions.push(function() { self._showActionMenu(); });
+
+            DialogManager.showChoice('Use item:', orbOptions, function(idx) {
+                orbActions[idx]();
             });
         } else {
             DialogManager.showChoice('Use item:', ['Potion (' + PlayerState.inventory.potions + ')', 'Cancel'], function(idx) {
@@ -246,24 +262,35 @@ var BattleScene = new Phaser.Class({
         });
     },
 
-    _useTrap: function() {
+    _useFriendshipOrb: function(orbType) {
         var self = this;
-        if (PlayerState.inventory.traps <= 0) {
-            DialogManager.showDialog(["No traps left!"], function() { self._showActionMenu(); });
+        var orbName = orbType === 'simple' ? 'Simple Friendship Orb' : 'Friendship Orb';
+        var invKey = orbType === 'simple' ? 'simpleFriendshipOrbs' : 'friendshipOrbs';
+
+        if (PlayerState.inventory[invKey] <= 0) {
+            DialogManager.showDialog(["No " + orbName + "s left!"], function() { self._showActionMenu(); });
             return;
         }
 
-        PlayerState.inventory.traps--;
         var enemyBeast = this.enemyTeam[this.currentEnemyBeastIdx];
+
+        // Simple orbs only work on beasts up to level 50
+        if (orbType === 'simple' && enemyBeast.level > 50) {
+            DialogManager.showDialog(["The Simple Friendship Orb won't work!", enemyBeast.name + " is too strong for a simple orb!"], function() {
+                self._showActionMenu();
+            });
+            return;
+        }
+
+        PlayerState.inventory[invKey]--;
         var caught = BattleEngine.attemptCatch(enemyBeast);
 
         if (caught) {
-            // Screen shake
             this.cameras.main.shake(300, 0.01);
             var catchBeast = PlayerState.createBeastInstance(enemyBeast.id, enemyBeast.level);
             catchBeast.currentHP = enemyBeast.currentHP;
 
-            DialogManager.showDialog(["You threw a trap!", "...", "Gotcha! " + enemyBeast.name + " was caught!"], function() {
+            DialogManager.showDialog(["You used a " + orbName + "!", "...", "The orb glows warmly! " + enemyBeast.name + " became your friend!"], function() {
                 if (PlayerState.team.length < 6) {
                     PlayerState.addBeastToTeam(catchBeast);
                     DialogManager.showDialog([enemyBeast.name + " was added to your team!"], function() {
@@ -276,7 +303,7 @@ var BattleScene = new Phaser.Class({
                 }
             });
         } else {
-            DialogManager.showDialog(["You threw a trap!", "...", "Oh no! " + enemyBeast.name + " broke free!"], function() {
+            DialogManager.showDialog(["You used a " + orbName + "!", "...", "Oh no! " + enemyBeast.name + " resisted the orb!"], function() {
                 self._enemyTurn();
             });
         }
@@ -695,7 +722,13 @@ var BattleScene = new Phaser.Class({
         if (this.battleType === 'pvp') {
             Multiplayer.disconnect();
         }
-        this.scene.start(this.returnScene);
+        // Check if returning to an interior map
+        var mapData = MAPS[PlayerState.position.map];
+        if (mapData && mapData.isInterior) {
+            this.scene.start('InteriorScene');
+        } else {
+            this.scene.start(this.returnScene);
+        }
     },
 
     _enemyTurn: function() {

@@ -1,11 +1,13 @@
 var PlayerState = {
     name: 'Trainer',
-    team: [],        // Array of beast instances (up to 6)
-    inventory: { potions: 5, traps: 10 },
+    team: [],
+    inventory: { potions: 5, friendshipOrbs: 0, simpleFriendshipOrbs: 0 },
     position: { map: 'town', x: 3, y: 5 },
     badges: [],
     defeatedTrainers: [],
     hasStarter: false,
+    receivedOrbs: false,
+    interiorReturn: null,
 
     init: function() {
         this.load();
@@ -27,18 +29,15 @@ var PlayerState = {
             stats: {}
         };
 
-        // Calculate stats at level
         instance.stats = this.calcStats(base.baseStats, level);
         instance.currentHP = instance.stats.hp;
 
-        // Set moves
         if (customMoves) {
             instance.moves = customMoves.slice(0, 4);
         } else {
             instance.moves = base.defaultMoves.slice(0, 4);
         }
 
-        // Initialize PP
         instance.pp = {};
         for (var i = 0; i < instance.moves.length; i++) {
             var move = MOVES[instance.moves[i]];
@@ -78,7 +77,6 @@ var PlayerState = {
             var base = BEASTS[beast.id];
             beast.stats = this.calcStats(base.baseStats, beast.level);
             beast.currentHP = beast.stats.hp;
-            // Restore PP
             for (var j = 0; j < beast.moves.length; j++) {
                 var move = MOVES[beast.moves[j]];
                 if (move) beast.pp[beast.moves[j]] = move.pp;
@@ -96,6 +94,10 @@ var PlayerState = {
         return true;
     },
 
+    getTotalOrbs: function() {
+        return (this.inventory.friendshipOrbs || 0) + (this.inventory.simpleFriendshipOrbs || 0);
+    },
+
     addXP: function(beastIndex, xpGain) {
         var beast = this.team[beastIndex];
         if (!beast) return null;
@@ -110,14 +112,11 @@ var PlayerState = {
             beast.xpToNext = Math.pow(beast.level + 1, 3);
             leveledUp = true;
 
-            // Recalculate stats
             var base = BEASTS[beast.id];
             var oldMaxHP = beast.stats.hp;
             beast.stats = this.calcStats(base.baseStats, beast.level);
-            // Heal the HP gained from leveling
             beast.currentHP += (beast.stats.hp - oldMaxHP);
 
-            // Check for new moves
             if (base.learnableMoves[beast.level]) {
                 newMoves.push({ level: beast.level, move: base.learnableMoves[beast.level] });
             }
@@ -147,7 +146,9 @@ var PlayerState = {
                 position: this.position,
                 badges: this.badges,
                 defeatedTrainers: this.defeatedTrainers,
-                hasStarter: this.hasStarter
+                hasStarter: this.hasStarter,
+                receivedOrbs: this.receivedOrbs,
+                interiorReturn: this.interiorReturn
             }));
         } catch(e) {}
     },
@@ -159,11 +160,20 @@ var PlayerState = {
                 var save = JSON.parse(data);
                 this.name = save.name || 'Trainer';
                 this.team = save.team || [];
-                this.inventory = save.inventory || { potions: 5, traps: 10 };
+                this.inventory = save.inventory || { potions: 5, friendshipOrbs: 0, simpleFriendshipOrbs: 0 };
+                // Migrate old saves that had 'traps'
+                if (this.inventory.traps !== undefined) {
+                    this.inventory.simpleFriendshipOrbs = (this.inventory.simpleFriendshipOrbs || 0) + this.inventory.traps;
+                    delete this.inventory.traps;
+                }
+                if (this.inventory.friendshipOrbs === undefined) this.inventory.friendshipOrbs = 0;
+                if (this.inventory.simpleFriendshipOrbs === undefined) this.inventory.simpleFriendshipOrbs = 0;
                 this.position = save.position || { map: 'town', x: 3, y: 5 };
                 this.badges = save.badges || [];
                 this.defeatedTrainers = save.defeatedTrainers || [];
                 this.hasStarter = save.hasStarter || false;
+                this.receivedOrbs = save.receivedOrbs || false;
+                this.interiorReturn = save.interiorReturn || null;
                 return true;
             }
         } catch(e) {}

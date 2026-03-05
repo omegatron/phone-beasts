@@ -3,8 +3,10 @@ var OverworldMixin = {
     initOverworld: function(mapKey) {
         // Copy mixin methods onto the scene so this._method() calls work
         var methods = ['_renderMap', '_createPlayer', '_createNPCs', '_createTrainerNPCs',
-            '_setupCamera', '_showLocationName', '_canMoveTo', '_checkExit', '_doExit',
-            '_movePlayer', '_checkEncounter', '_interact', 'updateOverworld'];
+            '_createShopkeepNPCs', '_setupCamera', '_showLocationName', '_canMoveTo',
+            '_checkExit', '_doExit', '_checkDoor', '_movePlayer', '_checkEncounter',
+            '_interact', '_handleShop', '_handleStarter', '_professorIntercept',
+            'updateOverworld'];
         for (var i = 0; i < methods.length; i++) {
             this[methods[i]] = OverworldMixin[methods[i]];
         }
@@ -44,7 +46,9 @@ var OverworldMixin = {
         var tileMap = {
             0: 'tile_grass', 1: 'tile_path', 2: 'tile_tallgrass', 3: 'tile_water',
             4: 'tile_wall', 5: 'tile_roof', 6: 'tile_door', 7: 'tile_floor',
-            8: 'tile_tree', 9: 'tile_sign', 10: 'tile_fence', 11: 'tile_flowers'
+            8: 'tile_tree', 9: 'tile_sign', 10: 'tile_fence', 11: 'tile_flowers',
+            12: 'tile_heal_roof', 13: 'tile_heal_wall', 14: 'tile_machine',
+            15: 'tile_counter', 16: 'tile_bookshelf', 17: 'tile_rug'
         };
 
         this.tileGroup = this.add.group();
@@ -58,8 +62,11 @@ var OverworldMixin = {
                 if (tileId < 0) {
                     if (tileId === -1 || tileId === -2 || tileId === -3 || tileId === -4) {
                         displayTile = 1; // exits are paths
+                    } else if (tileId === -5) {
+                        displayTile = 7; // interior exit rendered as floor
                     } else {
-                        displayTile = 0; // NPCs/special on grass
+                        // NPCs/special - use floor if interior map, grass otherwise
+                        displayTile = this.mapData.isInterior ? 7 : 0;
                     }
                 }
 
@@ -90,6 +97,8 @@ var OverworldMixin = {
 
         // Render trainer NPCs from map data
         this._createTrainerNPCs();
+        // Render shopkeep NPCs from map data
+        this._createShopkeepNPCs();
     },
 
     _createTrainerNPCs: function() {
@@ -119,6 +128,20 @@ var OverworldMixin = {
                         npcSprite.gridX = x;
                         npcSprite.gridY = y;
                     }
+                }
+            }
+        }
+    },
+
+    _createShopkeepNPCs: function() {
+        var data = this.mapData.data;
+        for (var y = 0; y < data.length; y++) {
+            for (var x = 0; x < data[y].length; x++) {
+                if (data[y][x] === -17) {
+                    var nx = x * this.tileSize + this.tileSize / 2;
+                    var ny = y * this.tileSize + this.tileSize / 2 - 2;
+                    var npcSprite = this.add.image(nx, ny, 'npc_shopkeep_down').setDepth(9);
+                    this.npcSprites['shopkeep_' + x + '_' + y] = npcSprite;
                 }
             }
         }
@@ -218,10 +241,11 @@ var OverworldMixin = {
         var data = this.mapData.data;
         if (y < 0 || y >= data.length || x < 0 || x >= data[0].length) return false;
         var tile = data[y][x];
-        // Blocked tiles: water, wall, roof, tree, fence
-        if (tile === 3 || tile === 4 || tile === 5 || tile === 8 || tile === 10) return false;
+        // Blocked tiles: water, wall, roof, tree, fence, heal_roof, heal_wall, machine, counter, bookshelf
+        if (tile === 3 || tile === 4 || tile === 5 || tile === 8 || tile === 10 ||
+            tile === 12 || tile === 13 || tile === 14 || tile === 15 || tile === 16) return false;
         // NPCs block
-        if (tile === -11 || tile === -12 || tile === -13 || tile === -14 || tile === -15 || tile === -16) return false;
+        if (tile === -11 || tile === -12 || tile === -13 || tile === -14 || tile === -15 || tile === -16 || tile === -17) return false;
         return true;
     },
 
@@ -246,6 +270,12 @@ var OverworldMixin = {
         var targetScene = sceneMap[exit.targetMap];
         if (!targetScene) return;
 
+        // Professor intercept when first leaving town
+        if (this.mapKey === 'town' && exitResult.dir === 'south' && !PlayerState.receivedOrbs && PlayerState.hasStarter) {
+            this._professorIntercept(exitResult);
+            return;
+        }
+
         PlayerState.position.map = exit.targetMap;
         PlayerState.position.x = exit.targetX;
         PlayerState.position.y = exit.targetY;
@@ -256,6 +286,48 @@ var OverworldMixin = {
         this.time.delayedCall(300, function() {
             MenuUI.close();
             self.scene.start(targetScene);
+        });
+    },
+
+    _checkDoor: function() {
+        var doors = this.mapData.doors;
+        if (!doors) return;
+
+        var key = this.playerGridX + ',' + this.playerGridY;
+        var door = doors[key];
+        if (!door) return;
+
+        // Check if standing on a door tile (tile 6)
+        var data = this.mapData.data;
+        var tile = data[this.playerGridY][this.playerGridX];
+        if (tile !== 6) return;
+
+        // Save return position (one tile below the door)
+        PlayerState.interiorReturn = {
+            map: this.mapKey,
+            x: this.playerGridX,
+            y: this.playerGridY + 1
+        };
+
+        PlayerState.position.map = door.targetMap;
+        PlayerState.position.x = door.targetX;
+        PlayerState.position.y = door.targetY;
+        PlayerState.save();
+
+        this.cameras.main.fadeOut(300, 0, 0, 0);
+        var self = this;
+        this.time.delayedCall(300, function() {
+            MenuUI.close();
+            var targetMap = MAPS[door.targetMap];
+            if (targetMap && targetMap.isInterior) {
+                self.scene.start('InteriorScene');
+            } else {
+                var sceneMap = {
+                    'town': 'TownScene', 'route1': 'RouteScene',
+                    'worldMap': 'WorldMapScene', 'gymCity': 'GymCityScene'
+                };
+                self.scene.start(sceneMap[door.targetMap] || 'TownScene');
+            }
         });
     },
 
@@ -284,6 +356,37 @@ var OverworldMixin = {
                 // Update saved position
                 PlayerState.position.x = self.playerGridX;
                 PlayerState.position.y = self.playerGridY;
+
+                // Check for doors (entering buildings)
+                self._checkDoor();
+
+                // Check for interior exit (tile -5)
+                var data = self.mapData.data;
+                var currentTile = data[self.playerGridY][self.playerGridX];
+                if (currentTile === -5) {
+                    var exitPos = self.mapData.exitPosition;
+                    var extMap = self.mapData.exteriorMap;
+                    if (PlayerState.interiorReturn) {
+                        extMap = PlayerState.interiorReturn.map;
+                        exitPos = { x: PlayerState.interiorReturn.x, y: PlayerState.interiorReturn.y };
+                    }
+                    PlayerState.position.map = extMap;
+                    PlayerState.position.x = exitPos.x;
+                    PlayerState.position.y = exitPos.y;
+                    PlayerState.interiorReturn = null;
+                    PlayerState.save();
+
+                    self.cameras.main.fadeOut(300, 0, 0, 0);
+                    self.time.delayedCall(300, function() {
+                        MenuUI.close();
+                        var sceneMap = {
+                            'town': 'TownScene', 'route1': 'RouteScene',
+                            'worldMap': 'WorldMapScene', 'gymCity': 'GymCityScene'
+                        };
+                        self.scene.start(sceneMap[extMap] || 'TownScene');
+                    });
+                    return;
+                }
 
                 // Check for wild encounter
                 self._checkEncounter();
@@ -351,6 +454,10 @@ var OverworldMixin = {
                         PlayerState.healAll();
                         PlayerState.save();
                     });
+                } else if (npc.action === 'shop') {
+                    this._handleShop();
+                } else if (npc.action === 'starter') {
+                    this._handleStarter();
                 } else {
                     DialogManager.showDialog(npc.dialog);
                 }
@@ -388,6 +495,85 @@ var OverworldMixin = {
                 });
             }
         }
+    }
+    _handleShop: function() {
+        var self = this;
+        DialogManager.showChoice('What would you like to buy?', [
+            'Potion (20g) - Heals 20 HP',
+            'Friendship Orb (100g)',
+            'Cancel'
+        ], function(idx) {
+            if (idx === 0) {
+                PlayerState.inventory.potions++;
+                DialogManager.showDialog(["You bought a Potion!", "Potions: " + PlayerState.inventory.potions], function() {
+                    PlayerState.save();
+                });
+            } else if (idx === 1) {
+                PlayerState.inventory.friendshipOrbs++;
+                DialogManager.showDialog(["You bought a Friendship Orb!", "Friendship Orbs: " + PlayerState.inventory.friendshipOrbs], function() {
+                    PlayerState.save();
+                });
+            }
+        });
+    },
+
+    _handleStarter: function() {
+        var self = this;
+        if (PlayerState.hasStarter) {
+            DialogManager.showDialog([
+                "Your " + PlayerState.team[0].name + " looks healthy!",
+                "Take good care of your beasts!"
+            ]);
+            return;
+        }
+        DialogManager.showDialog([
+            "Ah, there you are!",
+            "Are you ready to choose your first beast partner?",
+            "I have three wonderful beasts for you to choose from!"
+        ], function() {
+            self.cameras.main.fadeOut(500, 0, 0, 0);
+            self.time.delayedCall(500, function() {
+                self.scene.start('StarterSelectScene');
+            });
+        });
+    },
+
+    _professorIntercept: function(exitResult) {
+        var self = this;
+        PlayerState.receivedOrbs = true;
+        PlayerState.inventory.simpleFriendshipOrbs += 5;
+        PlayerState.save();
+
+        DialogManager.showDialog([
+            "Wait! " + PlayerState.name + "!",
+            "Professor Elm rushes over...",
+            "I almost forgot! Take these with you!",
+            "You received 5 Simple Friendship Orbs!",
+            "Use them during battle to befriend wild beasts.",
+            "Simple orbs work on beasts up to level 50.",
+            "For stronger beasts, you'll need proper Friendship Orbs!",
+            "Good luck on your journey!"
+        ], function() {
+            // Now do the actual exit
+            var exit = exitResult.exit;
+            var sceneMap = {
+                'town': 'TownScene', 'route1': 'RouteScene',
+                'worldMap': 'WorldMapScene', 'gymCity': 'GymCityScene'
+            };
+            var targetScene = sceneMap[exit.targetMap];
+            if (!targetScene) return;
+
+            PlayerState.position.map = exit.targetMap;
+            PlayerState.position.x = exit.targetX;
+            PlayerState.position.y = exit.targetY;
+            PlayerState.save();
+
+            self.cameras.main.fadeOut(300, 0, 0, 0);
+            self.time.delayedCall(300, function() {
+                MenuUI.close();
+                self.scene.start(targetScene);
+            });
+        });
     }
 };
 

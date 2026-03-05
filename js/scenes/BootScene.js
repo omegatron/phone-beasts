@@ -56,11 +56,16 @@ var BootScene = new Phaser.Class({
             if (PlayerState.hasStarter) {
                 // Resume from saved position
                 var mapKey = PlayerState.position.map;
-                var sceneMap = {
-                    'town': 'TownScene', 'route1': 'RouteScene',
-                    'worldMap': 'WorldMapScene', 'gymCity': 'GymCityScene'
-                };
-                self.scene.start(sceneMap[mapKey] || 'TownScene');
+                var mapData = MAPS[mapKey];
+                if (mapData && mapData.isInterior) {
+                    self.scene.start('InteriorScene');
+                } else {
+                    var sceneMap = {
+                        'town': 'TownScene', 'route1': 'RouteScene',
+                        'worldMap': 'WorldMapScene', 'gymCity': 'GymCityScene'
+                    };
+                    self.scene.start(sceneMap[mapKey] || 'TownScene');
+                }
             } else {
                 self.scene.start('IntroScene');
             }

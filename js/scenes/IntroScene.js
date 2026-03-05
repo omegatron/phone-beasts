@@ -91,9 +91,15 @@ var IntroScene = new Phaser.Class({
             "Come visit my lab to pick your first beast partner!",
             "A world of dreams and adventures awaits! Let's go!"
         ], function() {
+            // Place player in Elm's lab
+            PlayerState.position.map = 'elmLab';
+            PlayerState.position.x = 5;
+            PlayerState.position.y = 6;
+            PlayerState.save();
+
             self.cameras.main.fadeOut(1000, 0, 0, 0);
             self.time.delayedCall(1000, function() {
-                self.scene.start('StarterSelectScene');
+                self.scene.start('InteriorScene');
             });
         });
     },

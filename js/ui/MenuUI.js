@@ -165,7 +165,11 @@ var MenuUI = {
             fontSize: '12px', fontFamily: 'monospace', color: '#ecf0f1'
         }));
 
-        this.subMenu.add(scene.add.text(30, 85, 'Traps: ' + PlayerState.inventory.traps + '  (Catch wild beasts)', {
+        this.subMenu.add(scene.add.text(30, 85, 'Friendship Orbs: ' + (PlayerState.inventory.friendshipOrbs || 0), {
+            fontSize: '12px', fontFamily: 'monospace', color: '#ecf0f1'
+        }));
+
+        this.subMenu.add(scene.add.text(30, 110, 'Simple Orbs: ' + (PlayerState.inventory.simpleFriendshipOrbs || 0), {
             fontSize: '12px', fontFamily: 'monospace', color: '#ecf0f1'
         }));
 

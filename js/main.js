@@ -31,6 +31,7 @@ var config = {
         TownScene,
         RouteScene,
         WorldMapScene,
+        InteriorScene,
         GymCityScene,
         BattleScene
     ],

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'phone-beasts-v5';
+const CACHE_NAME = 'phone-beasts-v6';
 const ASSETS = [
     './',
     './index.html',
@@ -21,6 +21,7 @@ const ASSETS = [
     './js/scenes/TownScene.js',
     './js/scenes/RouteScene.js',
     './js/scenes/WorldMapScene.js',
+    './js/scenes/InteriorScene.js',
     './js/scenes/GymCityScene.js',
     './js/scenes/BattleScene.js'
 ];

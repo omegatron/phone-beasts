@@ -32,7 +32,13 @@ var SpriteGenerator = {
             'tile_tree':       function(c) { c.fillStyle='#4a8c3f'; c.fillRect(0,0,S,S); c.fillStyle='#5d4037'; c.fillRect(6,10,4,6); c.fillStyle='#2e7d32'; c.fillRect(2,1,12,10); c.fillStyle='#388e3c'; c.fillRect(4,0,8,8); },
             'tile_sign':       function(c) { c.fillStyle='#4a8c3f'; c.fillRect(0,0,S,S); c.fillStyle='#5d4037'; c.fillRect(7,8,2,8); c.fillStyle='#8d6e63'; c.fillRect(3,3,10,6); c.fillStyle='#6d4c41'; c.fillRect(4,4,8,4); },
             'tile_fence':      function(c) { c.fillStyle='#4a8c3f'; c.fillRect(0,0,S,S); c.fillStyle='#8d6e63'; c.fillRect(0,6,S,2); c.fillRect(0,10,S,2); c.fillRect(1,4,2,10); c.fillRect(7,4,2,10); c.fillRect(13,4,2,10); },
-            'tile_flowers':    function(c) { c.fillStyle='#4a8c3f'; c.fillRect(0,0,S,S); c.fillStyle='#e74c3c'; c.fillRect(3,4,3,3); c.fillStyle='#f1c40f'; c.fillRect(10,8,3,3); c.fillStyle='#9b59b6'; c.fillRect(6,12,3,3); }
+            'tile_flowers':    function(c) { c.fillStyle='#4a8c3f'; c.fillRect(0,0,S,S); c.fillStyle='#e74c3c'; c.fillRect(3,4,3,3); c.fillStyle='#f1c40f'; c.fillRect(10,8,3,3); c.fillStyle='#9b59b6'; c.fillRect(6,12,3,3); },
+            'tile_heal_roof':  function(c) { c.fillStyle='#ff8a9e'; c.fillRect(0,0,S,S); c.fillStyle='#ff6b81'; c.fillRect(0,S-2,S,2); for(var i=0;i<S;i+=4) c.fillRect(i,0,2,S); c.fillStyle='#fff'; c.fillRect(6,3,4,1); c.fillRect(7,2,2,3); },
+            'tile_heal_wall':  function(c) { c.fillStyle='#fce4ec'; c.fillRect(0,0,S,S); c.fillStyle='#f8bbd0'; c.fillRect(0,0,S,1); c.fillRect(0,S-1,S,1); c.fillRect(0,0,1,S); c.fillRect(S-1,0,1,S); },
+            'tile_machine':    function(c) { c.fillStyle='#546e7a'; c.fillRect(0,0,S,S); c.fillStyle='#37474f'; c.fillRect(1,1,S-2,S-2); c.fillStyle='#4caf50'; c.fillRect(3,3,4,3); c.fillRect(9,3,4,3); c.fillStyle='#81c784'; c.fillRect(3,8,10,2); c.fillStyle='#e0e0e0'; c.fillRect(5,11,6,3); },
+            'tile_counter':    function(c) { c.fillStyle='#6d4c41'; c.fillRect(0,0,S,S); c.fillStyle='#5d4037'; c.fillRect(0,0,S,2); c.fillRect(0,S-2,S,2); c.fillStyle='#8d6e63'; c.fillRect(2,4,S-4,S-8); },
+            'tile_bookshelf':  function(c) { c.fillStyle='#5d4037'; c.fillRect(0,0,S,S); c.fillStyle='#e74c3c'; c.fillRect(1,1,4,6); c.fillStyle='#3498db'; c.fillRect(6,1,4,6); c.fillStyle='#27ae60'; c.fillRect(11,1,4,6); c.fillStyle='#f39c12'; c.fillRect(1,9,4,6); c.fillStyle='#9b59b6'; c.fillRect(6,9,4,6); c.fillStyle='#1abc9c'; c.fillRect(11,9,4,6); },
+            'tile_rug':        function(c) { c.fillStyle='#d4a76a'; c.fillRect(0,0,S,S); c.fillStyle='#c62828'; c.fillRect(2,2,S-4,S-4); c.fillStyle='#b71c1c'; c.fillRect(4,4,S-8,S-8); }
         };
 
         for (var key in tiles) {
@@ -66,6 +72,7 @@ var SpriteGenerator = {
             'npc_male':      { hair: '#8b4513', skin: '#f5d6ba', shirt: '#3498db', pants: '#34495e', hat: null },
             'npc_female':    { hair: '#e67e22', skin: '#f5d6ba', shirt: '#e91e63', pants: '#8e24aa', hat: null },
             'npc_healer':    { hair: '#ff69b4', skin: '#f5d6ba', shirt: '#fff', pants: '#fff', hat: null },
+            'npc_shopkeep':  { hair: '#4a235a', skin: '#f5d6ba', shirt: '#2e86c1', pants: '#1b4f72', hat: null },
             'npc_trainer':   { hair: '#2c3e50', skin: '#f5d6ba', shirt: '#f39c12', pants: '#2c3e50', hat: '#f39c12' },
             'npc_gymleader': { hair: '#1abc9c', skin: '#f5d6ba', shirt: '#2980b9', pants: '#1a5276', hat: null }
         };
