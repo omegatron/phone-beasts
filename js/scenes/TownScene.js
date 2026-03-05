@@ -495,7 +495,7 @@ var OverworldMixin = {
                 });
             }
         }
-    }
+    },
     _handleShop: function() {
         var self = this;
         DialogManager.showChoice('What would you like to buy?', [

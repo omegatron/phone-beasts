@@ -1,3 +1,22 @@
+// Global error handler - shows errors on screen with reset option
+window.onerror = function(msg, url, line, col, error) {
+    var overlay = document.getElementById('error-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'error-overlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);color:#ff6b6b;z-index:99999;padding:20px;font-family:monospace;font-size:14px;overflow:auto;box-sizing:border-box;';
+        document.body.appendChild(overlay);
+    }
+    var file = url ? url.split('/').pop() : '?';
+    overlay.innerHTML = '<h2 style="color:#ff6b6b;margin:0 0 10px">Phone Beasts Error</h2>' +
+        '<p style="color:#fff;word-break:break-all">' + msg + '</p>' +
+        '<p style="color:#aaa">File: ' + file + ' Line: ' + line + '</p>' +
+        (error && error.stack ? '<pre style="color:#888;font-size:11px;white-space:pre-wrap">' + error.stack + '</pre>' : '') +
+        '<br><button onclick="localStorage.removeItem(\'phoneBeasts_save\');location.reload()" style="padding:10px 20px;font-size:16px;margin:5px;cursor:pointer;background:#c0392b;color:#fff;border:none;border-radius:4px">Reset Save &amp; Reload</button>' +
+        '<button onclick="location.reload()" style="padding:10px 20px;font-size:16px;margin:5px;cursor:pointer;background:#2980b9;color:#fff;border:none;border-radius:4px">Reload</button>';
+    return true;
+};
+
 // Register service worker
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(function() {});
