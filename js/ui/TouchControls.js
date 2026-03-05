@@ -1,5 +1,6 @@
 var TouchControls = {
     keys: { up: false, down: false, left: false, right: false, a: false, b: false, menu: false },
+    pressed: { up: false, down: false, left: false, right: false, a: false, b: false, menu: false },
     enabled: true,
     element: null,
 
@@ -43,6 +44,7 @@ var TouchControls = {
                     e.preventDefault();
                     if (self.enabled) {
                         self.keys[key] = true;
+                        self.pressed[key] = true;
                         btn.classList.add('pressed');
                     }
                 }, { passive: false });
@@ -63,6 +65,7 @@ var TouchControls = {
                     e.preventDefault();
                     if (self.enabled) {
                         self.keys[key] = true;
+                        self.pressed[key] = true;
                         btn.classList.add('pressed');
                     }
                 });
@@ -93,6 +96,7 @@ var TouchControls = {
             var key = keyMap[e.key];
             if (key && self.enabled) {
                 e.preventDefault();
+                if (!self.keys[key]) self.pressed[key] = true;
                 self.keys[key] = true;
             }
         });
@@ -114,8 +118,8 @@ var TouchControls = {
     },
 
     justPressed: function(key) {
-        if (this.keys[key]) {
-            this.keys[key] = false;
+        if (this.pressed[key]) {
+            this.pressed[key] = false;
             return true;
         }
         return false;
