@@ -1,4 +1,6 @@
 var SpriteGenerator = {
+    _beastShapes: {},
+
     generateAll: function(scene) {
         this.generateTiles(scene);
         this.generatePlayerSprite(scene);
