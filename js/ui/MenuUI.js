@@ -35,7 +35,7 @@ var MenuUI = {
         this.container.add(overlay);
 
         // Menu panel
-        var panelW = 180, panelH = 280;
+        var panelW = 180, panelH = 310;
         var px = w - panelW - 10, py = 10;
 
         var bg = scene.add.graphics();
@@ -51,7 +51,7 @@ var MenuUI = {
         }).setOrigin(0.5));
 
         // Menu items
-        var items = ['Team', 'Bag', 'Save', 'Multiplayer', 'Fullscreen', 'Close'];
+        var items = ['Team', 'Bag', 'Map', 'Save', 'Multiplayer', 'Fullscreen', 'Close'];
         this.menuItems = [];
 
         for (var i = 0; i < items.length; i++) {
@@ -83,10 +83,11 @@ var MenuUI = {
         switch(idx) {
             case 0: this._showTeam(); break;
             case 1: this._showBag(); break;
-            case 2: this._saveGame(); break;
-            case 3: this._showMultiplayer(); break;
-            case 4: this._toggleFullscreen(); break;
-            case 5: this.close(); break;
+            case 2: this._showMap(); break;
+            case 3: this._saveGame(); break;
+            case 4: this._showMultiplayer(); break;
+            case 5: this._toggleFullscreen(); break;
+            case 6: this.close(); break;
         }
     },
 
@@ -259,6 +260,128 @@ var MenuUI = {
         this.subMenu.add(closeBtn);
     },
 
+    _showMap: function() {
+        var scene = this.scene;
+        var cam = scene.cameras.main;
+        if (this.subMenu) this.subMenu.destroy();
+
+        this.subMenu = scene.add.container(0, 0).setDepth(600).setScrollFactor(0);
+
+        var bg = scene.add.graphics();
+        bg.fillStyle(0x1a1a2e, 0.97);
+        bg.fillRect(0, 0, cam.width, cam.height);
+        this.subMenu.add(bg);
+
+        this.subMenu.add(scene.add.text(cam.width / 2, 15, 'WORLD MAP', {
+            fontSize: '16px', fontFamily: 'monospace', color: '#f1c40f', fontStyle: 'bold'
+        }).setOrigin(0.5));
+
+        // Determine current exterior map for highlighting
+        var currentMap = PlayerState.position.map;
+        if (typeof MAPS !== 'undefined' && MAPS[currentMap] && MAPS[currentMap].isInterior) {
+            currentMap = MAPS[currentMap].exteriorMap || currentMap;
+        }
+
+        // Node definitions with layout positions (relative to cam center)
+        var cx = cam.width / 2;
+        var mapH = cam.height - 80; // usable height (below title, above back button)
+        var topY = 45;
+        var stepY = mapH / 7;
+
+        var nodes = [
+            { key: 'town',       name: 'Breezeholm',     x: cx,        y: topY + stepY * 0.5, color: 0xf1c40f },
+            { key: 'route1',     name: 'Route 1',        x: cx,        y: topY + stepY * 1.5, color: 0xecf0f1 },
+            { key: 'route2',     name: 'Route 2',        x: cx,        y: topY + stepY * 2.5, color: 0xecf0f1 },
+            { key: 'mistyWoods', name: 'Misty Woods',    x: cx - 30,   y: topY + stepY * 3.5, color: 0x2ecc71 },
+            { key: 'mountainPath', name: 'Crystal Peak',  x: cx - 80,  y: topY + stepY * 4.5, color: 0x95a5a6 },
+            { key: 'route3',     name: 'Route 3',        x: cx + 40,   y: topY + stepY * 4.5, color: 0xecf0f1 },
+            { key: 'gymCity',    name: 'Tidepool City',   x: cx + 40,  y: topY + stepY * 5.5, color: 0xf1c40f }
+        ];
+
+        // Build lookup for drawing connections
+        var nodeMap = {};
+        for (var i = 0; i < nodes.length; i++) {
+            nodeMap[nodes[i].key] = nodes[i];
+        }
+
+        // Connections between nodes
+        var connections = [
+            ['town', 'route1'],
+            ['route1', 'route2'],
+            ['route2', 'mistyWoods'],
+            ['mistyWoods', 'mountainPath'],
+            ['mistyWoods', 'route3'],
+            ['route3', 'gymCity']
+        ];
+
+        // Draw connection lines
+        var lineGfx = scene.add.graphics();
+        lineGfx.lineStyle(2, 0x7f8c8d, 0.6);
+        for (var c = 0; c < connections.length; c++) {
+            var a = nodeMap[connections[c][0]];
+            var b = nodeMap[connections[c][1]];
+            if (a && b) {
+                lineGfx.beginPath();
+                lineGfx.moveTo(a.x, a.y);
+                lineGfx.lineTo(b.x, b.y);
+                lineGfx.strokePath();
+            }
+        }
+        this.subMenu.add(lineGfx);
+
+        // Draw nodes
+        var nodeGfx = scene.add.graphics();
+        for (var n = 0; n < nodes.length; n++) {
+            var node = nodes[n];
+            var isCurrent = (node.key === currentMap);
+            var radius = isCurrent ? 8 : 5;
+
+            if (isCurrent) {
+                // Glow ring for current location
+                nodeGfx.lineStyle(3, 0xf39c12, 0.7);
+                nodeGfx.strokeCircle(node.x, node.y, 12);
+            }
+
+            nodeGfx.fillStyle(node.color, isCurrent ? 1 : 0.7);
+            nodeGfx.fillCircle(node.x, node.y, radius);
+
+            // Label
+            var labelColor = isCurrent ? '#f1c40f' : '#bdc3c7';
+            var labelStyle = isCurrent ? 'bold' : '';
+            var label = scene.add.text(node.x, node.y + radius + 6, node.name, {
+                fontSize: '9px', fontFamily: 'monospace', color: labelColor, fontStyle: labelStyle
+            }).setOrigin(0.5, 0);
+            this.subMenu.add(label);
+
+            if (isCurrent) {
+                var arrow = scene.add.text(node.x, node.y - radius - 10, '\u25BC', {
+                    fontSize: '10px', fontFamily: 'monospace', color: '#f39c12'
+                }).setOrigin(0.5, 1);
+                this.subMenu.add(arrow);
+
+                // Pulse the arrow
+                scene.tweens.add({
+                    targets: arrow,
+                    y: arrow.y - 4,
+                    duration: 600,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
+        }
+        this.subMenu.add(nodeGfx);
+
+        // Back button
+        var closeBtn = scene.add.text(cam.width / 2, cam.height - 30, '[ Back ]', {
+            fontSize: '14px', fontFamily: 'monospace', color: '#e74c3c'
+        }).setOrigin(0.5).setInteractive();
+        closeBtn.on('pointerdown', function() {
+            if (MenuUI.subMenu) { MenuUI.subMenu.destroy(); MenuUI.subMenu = null; }
+        });
+        this.subMenu.add(closeBtn);
+    },
+
     _saveGame: function() {
         PlayerState.save();
         var scene = this.scene;
@@ -399,7 +522,7 @@ var MenuUI = {
             this._draw();
         }
         if (TouchControls.justPressed('down')) {
-            this.selectedIndex = Math.min(5, this.selectedIndex + 1);
+            this.selectedIndex = Math.min(6, this.selectedIndex + 1);
             this._draw();
         }
         if (TouchControls.justPressed('a')) {
