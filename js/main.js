@@ -51,6 +51,7 @@ var config = {
         RouteScene,
         WorldMapScene,
         InteriorScene,
+        GenericMapScene,
         GymCityScene,
         BattleScene
     ],

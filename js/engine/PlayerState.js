@@ -1,10 +1,11 @@
 var PlayerState = {
     name: 'Trainer',
     team: [],
-    inventory: { potions: 5, friendshipOrbs: 0, simpleFriendshipOrbs: 0 },
+    inventory: { potions: 5, friendshipOrbs: 0, simpleFriendshipOrbs: 0, xpGains: 0 },
     position: { map: 'town', x: 3, y: 5 },
     badges: [],
     defeatedTrainers: [],
+    collectedPickups: [],
     hasStarter: false,
     receivedOrbs: false,
     interiorReturn: null,
@@ -21,6 +22,7 @@ var PlayerState = {
             id: beastId,
             name: base.name,
             type: base.type,
+            type2: base.type2 || null,
             level: level,
             xp: 0,
             xpToNext: Math.pow(level + 1, 3),
@@ -122,7 +124,34 @@ var PlayerState = {
             }
         }
 
-        return { leveledUp: leveledUp, newMoves: newMoves };
+        // Check for evolution
+        var evolved = false;
+        var base = BEASTS[beast.id];
+        if (base.evolvesAt && beast.level >= base.evolvesAt && base.evolvesTo) {
+            var evoBase = BEASTS[base.evolvesTo];
+            if (evoBase) {
+                beast.id = evoBase.id;
+                beast.name = evoBase.name;
+                beast.type = evoBase.type;
+                beast.type2 = evoBase.type2 || null;
+                var oldMaxHP = beast.stats.hp;
+                beast.stats = this.calcStats(evoBase.baseStats, beast.level);
+                beast.currentHP += (beast.stats.hp - oldMaxHP);
+                evolved = true;
+            }
+        }
+
+        return { leveledUp: leveledUp, newMoves: newMoves, evolved: evolved, evolvedName: evolved ? beast.name : null };
+    },
+
+    useXPGain: function(beastIndex) {
+        if (this.inventory.xpGains <= 0) return null;
+        var beast = this.team[beastIndex];
+        if (!beast || beast.currentHP <= 0 || beast.level >= 50) return null;
+
+        this.inventory.xpGains--;
+        var xpNeeded = beast.xpToNext - beast.xp;
+        return this.addXP(beastIndex, xpNeeded);
     },
 
     learnMove: function(beastIndex, newMoveId, replaceIndex) {
@@ -146,6 +175,7 @@ var PlayerState = {
                 position: this.position,
                 badges: this.badges,
                 defeatedTrainers: this.defeatedTrainers,
+                collectedPickups: this.collectedPickups,
                 hasStarter: this.hasStarter,
                 receivedOrbs: this.receivedOrbs,
                 interiorReturn: this.interiorReturn
@@ -160,7 +190,7 @@ var PlayerState = {
                 var save = JSON.parse(data);
                 this.name = save.name || 'Trainer';
                 this.team = save.team || [];
-                this.inventory = save.inventory || { potions: 5, friendshipOrbs: 0, simpleFriendshipOrbs: 0 };
+                this.inventory = save.inventory || { potions: 5, friendshipOrbs: 0, simpleFriendshipOrbs: 0, xpGains: 0 };
                 // Migrate old saves that had 'traps'
                 if (this.inventory.traps !== undefined) {
                     this.inventory.simpleFriendshipOrbs = (this.inventory.simpleFriendshipOrbs || 0) + this.inventory.traps;
@@ -168,9 +198,11 @@ var PlayerState = {
                 }
                 if (this.inventory.friendshipOrbs === undefined) this.inventory.friendshipOrbs = 0;
                 if (this.inventory.simpleFriendshipOrbs === undefined) this.inventory.simpleFriendshipOrbs = 0;
+                if (this.inventory.xpGains === undefined) this.inventory.xpGains = 0;
                 this.position = save.position || { map: 'town', x: 3, y: 5 };
                 this.badges = save.badges || [];
                 this.defeatedTrainers = save.defeatedTrainers || [];
+                this.collectedPickups = save.collectedPickups || [];
                 this.hasStarter = save.hasStarter || false;
                 this.receivedOrbs = save.receivedOrbs || false;
                 this.interiorReturn = save.interiorReturn || null;

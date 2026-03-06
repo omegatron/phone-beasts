@@ -64,7 +64,7 @@ var BootScene = new Phaser.Class({
                         'town': 'TownScene', 'route1': 'RouteScene',
                         'worldMap': 'WorldMapScene', 'gymCity': 'GymCityScene'
                     };
-                    self.scene.start(sceneMap[mapKey] || 'TownScene');
+                    self.scene.start(sceneMap[mapKey] || 'GenericMapScene');
                 }
             } else {
                 self.scene.start('IntroScene');

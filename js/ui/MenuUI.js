@@ -173,11 +173,88 @@ var MenuUI = {
             fontSize: '12px', fontFamily: 'monospace', color: '#ecf0f1'
         }));
 
+        this.subMenu.add(scene.add.text(30, 135, 'XP Gains: ' + (PlayerState.inventory.xpGains || 0), {
+            fontSize: '12px', fontFamily: 'monospace', color: '#ecf0f1'
+        }));
+
+        if (PlayerState.inventory.xpGains > 0) {
+            var useXPBtn = scene.add.text(30, 158, '[ Use XP Gain ]', {
+                fontSize: '12px', fontFamily: 'monospace', color: '#2ecc71'
+            }).setInteractive();
+            this.subMenu.add(useXPBtn);
+
+            useXPBtn.on('pointerdown', function() {
+                MenuUI._showXPGainTarget();
+            });
+        }
+
         var closeBtn = scene.add.text(cam.width / 2, cam.height - 30, '[ Back ]', {
             fontSize: '14px', fontFamily: 'monospace', color: '#e74c3c'
         }).setOrigin(0.5).setInteractive();
         closeBtn.on('pointerdown', function() {
             if (MenuUI.subMenu) { MenuUI.subMenu.destroy(); MenuUI.subMenu = null; }
+        });
+        this.subMenu.add(closeBtn);
+    },
+
+    _showXPGainTarget: function() {
+        var scene = this.scene;
+        var cam = scene.cameras.main;
+        if (this.subMenu) this.subMenu.destroy();
+
+        this.subMenu = scene.add.container(0, 0).setDepth(600).setScrollFactor(0);
+
+        var bg = scene.add.graphics();
+        bg.fillStyle(0x1a1a2e, 0.97);
+        bg.fillRect(0, 0, cam.width, cam.height);
+        this.subMenu.add(bg);
+
+        this.subMenu.add(scene.add.text(cam.width / 2, 20, 'USE XP GAIN', {
+            fontSize: '16px', fontFamily: 'monospace', color: '#f1c40f', fontStyle: 'bold'
+        }).setOrigin(0.5));
+
+        this.subMenu.add(scene.add.text(cam.width / 2, 45, 'Choose a beast to level up:', {
+            fontSize: '11px', fontFamily: 'monospace', color: '#95a5a6'
+        }).setOrigin(0.5));
+
+        for (var i = 0; i < PlayerState.team.length; i++) {
+            var beast = PlayerState.team[i];
+            var by = 70 + i * 45;
+            var canUse = beast.currentHP > 0 && beast.level < 50;
+            var color = canUse ? '#2ecc71' : '#7f8c8d';
+
+            var btn = scene.add.text(30, by, beast.name + ' L' + beast.level + (canUse ? ' [ Level Up ]' : ' (can\'t use)'), {
+                fontSize: '12px', fontFamily: 'monospace', color: color
+            }).setInteractive();
+            this.subMenu.add(btn);
+
+            if (canUse) {
+                (function(idx) {
+                    btn.on('pointerdown', function() {
+                        var result = PlayerState.useXPGain(idx);
+                        if (result) {
+                            var beast = PlayerState.team[idx];
+                            var msgs = [beast.name + ' grew to level ' + beast.level + '!'];
+                            if (result.evolved) {
+                                msgs.push('What? ' + beast.name + ' is evolving!');
+                                msgs.push('Congratulations! Your beast evolved into ' + beast.name + '!');
+                            }
+                            PlayerState.save();
+                            if (MenuUI.subMenu) { MenuUI.subMenu.destroy(); MenuUI.subMenu = null; }
+                            MenuUI.close();
+                            DialogManager.showDialog(msgs);
+                        }
+                    });
+                })(i);
+            }
+        }
+
+        var closeBtn = scene.add.text(cam.width / 2, cam.height - 30, '[ Back ]', {
+            fontSize: '14px', fontFamily: 'monospace', color: '#e74c3c'
+        }).setOrigin(0.5).setInteractive();
+        closeBtn.on('pointerdown', function() {
+            if (MenuUI.subMenu) { MenuUI.subMenu.destroy(); MenuUI.subMenu = null; }
+            MenuUI._showBag();
         });
         this.subMenu.add(closeBtn);
     },

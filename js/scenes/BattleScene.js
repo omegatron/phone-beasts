@@ -477,7 +477,7 @@ var BattleScene = new Phaser.Class({
             defender.currentHP = Math.max(0, defender.currentHP - damage);
 
             // Type effectiveness text
-            var multiplier = BattleEngine.getTypeMultiplier(move.type, defender.type);
+            var multiplier = BattleEngine.getTypeMultiplier(move.type, defender.type, defender.type2);
             var effText = BattleEngine.getEffectivenessText(multiplier);
             if (effText) messages.push(effText);
 
@@ -538,20 +538,38 @@ var BattleScene = new Phaser.Class({
                     self._drawBeastInfo();
                 }
 
-                DialogManager.showDialog(xpMessages, function() {
-                    // Check for new moves
-                    if (result && result.newMoves.length > 0) {
-                        self._handleNewMoves(result.newMoves, 0, function() {
-                            self._checkNextEnemyBeast();
+                var afterXP = function() {
+                    // Check for evolution
+                    if (result && result.evolved) {
+                        self._drawBeasts();
+                        self._drawBeastInfo();
+                        DialogManager.showDialog([
+                            "What? " + (result.evolvedName || playerBeast.name) + " is evolving!",
+                            "Congratulations! Your beast evolved into " + playerBeast.name + "!"
+                        ], function() {
+                            self._afterLevelUp(result);
                         });
                     } else {
-                        self._checkNextEnemyBeast();
+                        self._afterLevelUp(result);
                     }
-                });
+                };
+
+                DialogManager.showDialog(xpMessages, afterXP);
             } else {
                 self._checkNextEnemyBeast();
             }
         });
+    },
+
+    _afterLevelUp: function(result) {
+        var self = this;
+        if (result && result.newMoves.length > 0) {
+            self._handleNewMoves(result.newMoves, 0, function() {
+                self._checkNextEnemyBeast();
+            });
+        } else {
+            self._checkNextEnemyBeast();
+        }
     },
 
     _handleNewMoves: function(newMoves, idx, callback) {

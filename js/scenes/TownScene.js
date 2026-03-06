@@ -48,7 +48,8 @@ var OverworldMixin = {
             4: 'tile_wall', 5: 'tile_roof', 6: 'tile_door', 7: 'tile_floor',
             8: 'tile_tree', 9: 'tile_sign', 10: 'tile_fence', 11: 'tile_flowers',
             12: 'tile_heal_roof', 13: 'tile_heal_wall', 14: 'tile_machine',
-            15: 'tile_counter', 16: 'tile_bookshelf', 17: 'tile_rug'
+            15: 'tile_counter', 16: 'tile_bookshelf', 17: 'tile_rug',
+            18: 'tile_mountain', 19: 'tile_chest'
         };
 
         this.tileGroup = this.add.group();
@@ -103,32 +104,29 @@ var OverworldMixin = {
 
     _createTrainerNPCs: function() {
         var data = this.mapData.data;
+        var trainerTileMap = {
+            '-13': { suffix: '_trainer1', sprite: 'npc_trainer_down' },
+            '-14': { suffix: '_trainer2', sprite: 'npc_trainer_down' },
+            '-16': { key: 'gymLeader', sprite: 'npc_gymleader_down' },
+            '-18': { suffix: '_trainer1', sprite: 'npc_trainer_down' },
+            '-19': { suffix: '_trainer2', sprite: 'npc_trainer_down' }
+        };
         for (var y = 0; y < data.length; y++) {
             for (var x = 0; x < data[y].length; x++) {
-                if (data[y][x] === -13 || data[y][x] === -14 || data[y][x] === -16) {
-                    var trainerKey;
-                    var spriteKey;
-                    if (data[y][x] === -13) {
-                        trainerKey = this.mapKey === 'route1' ? 'route1_trainer1' : null;
-                        spriteKey = 'npc_trainer_down';
-                    } else if (data[y][x] === -14) {
-                        trainerKey = this.mapKey === 'route1' ? 'route1_trainer2' : null;
-                        spriteKey = 'npc_trainer_down';
-                    } else if (data[y][x] === -16) {
-                        trainerKey = 'gymLeader';
-                        spriteKey = 'npc_gymleader_down';
-                    }
+                var tileStr = String(data[y][x]);
+                var info = trainerTileMap[tileStr];
+                if (!info) continue;
 
-                    if (trainerKey) {
-                        var nx = x * this.tileSize + this.tileSize / 2;
-                        var ny = y * this.tileSize + this.tileSize / 2 - 2;
-                        var npcSprite = this.add.image(nx, ny, spriteKey).setDepth(9);
-                        this.npcSprites['trainer_' + trainerKey] = npcSprite;
-                        npcSprite.trainerKey = trainerKey;
-                        npcSprite.gridX = x;
-                        npcSprite.gridY = y;
-                    }
-                }
+                var trainerKey = info.key || (this.mapKey + info.suffix);
+                if (!TRAINERS[trainerKey]) continue;
+
+                var nx = x * this.tileSize + this.tileSize / 2;
+                var ny = y * this.tileSize + this.tileSize / 2 - 2;
+                var npcSprite = this.add.image(nx, ny, info.sprite).setDepth(9);
+                this.npcSprites['trainer_' + trainerKey] = npcSprite;
+                npcSprite.trainerKey = trainerKey;
+                npcSprite.gridX = x;
+                npcSprite.gridY = y;
             }
         }
     },
@@ -243,9 +241,9 @@ var OverworldMixin = {
         var tile = data[y][x];
         // Blocked tiles: water, wall, roof, tree, fence, heal_roof, heal_wall, machine, counter, bookshelf
         if (tile === 3 || tile === 4 || tile === 5 || tile === 8 || tile === 10 ||
-            tile === 12 || tile === 13 || tile === 14 || tile === 15 || tile === 16) return false;
+            tile === 12 || tile === 13 || tile === 14 || tile === 15 || tile === 16 || tile === 18) return false;
         // NPCs block
-        if (tile === -11 || tile === -12 || tile === -13 || tile === -14 || tile === -15 || tile === -16 || tile === -17) return false;
+        if (tile === -11 || tile === -12 || tile === -13 || tile === -14 || tile === -15 || tile === -16 || tile === -17 || tile === -18 || tile === -19) return false;
         return true;
     },
 
@@ -267,8 +265,8 @@ var OverworldMixin = {
             'town': 'TownScene', 'route1': 'RouteScene',
             'worldMap': 'WorldMapScene', 'gymCity': 'GymCityScene'
         };
-        var targetScene = sceneMap[exit.targetMap];
-        if (!targetScene) return;
+        var targetScene = sceneMap[exit.targetMap] || 'GenericMapScene';
+        if (!MAPS[exit.targetMap]) return;
 
         // Professor intercept when first leaving town
         if (this.mapKey === 'town' && exitResult.dir === 'south' && !PlayerState.receivedOrbs && PlayerState.hasStarter) {
@@ -326,7 +324,7 @@ var OverworldMixin = {
                     'town': 'TownScene', 'route1': 'RouteScene',
                     'worldMap': 'WorldMapScene', 'gymCity': 'GymCityScene'
                 };
-                self.scene.start(sceneMap[door.targetMap] || 'TownScene');
+                self.scene.start(sceneMap[door.targetMap] || 'GenericMapScene');
             }
         });
     },
@@ -383,7 +381,7 @@ var OverworldMixin = {
                             'town': 'TownScene', 'route1': 'RouteScene',
                             'worldMap': 'WorldMapScene', 'gymCity': 'GymCityScene'
                         };
-                        self.scene.start(sceneMap[extMap] || 'TownScene');
+                        self.scene.start(sceneMap[extMap] || 'GenericMapScene');
                     });
                     return;
                 }
@@ -403,7 +401,7 @@ var OverworldMixin = {
         var rate = this.mapData.encounterRate || 15;
         if (Math.random() * 100 < rate) {
             this.encounterCooldown = 1000;
-            var locationId = this.mapKey === 'route1' ? 'route1' : 'worldMap';
+            var locationId = this.mapKey;
             var wildBeast = BattleEngine.generateWildBeast(locationId);
             if (wildBeast) {
                 // Screen flash effect
@@ -465,12 +463,34 @@ var OverworldMixin = {
             }
         }
 
+        // Check for pickups (chest tile 19)
+        if (tile === 19 && this.mapData.pickups) {
+            var pickupKey = targetX + ',' + targetY;
+            var pickup = this.mapData.pickups[pickupKey];
+            if (pickup) {
+                var globalPickupKey = this.mapKey + '_' + pickupKey;
+                if (PlayerState.collectedPickups.indexOf(globalPickupKey) >= 0) {
+                    DialogManager.showDialog(["The chest is empty."]);
+                    return;
+                }
+                PlayerState.collectedPickups.push(globalPickupKey);
+                if (pickup.item === 'xpGain') {
+                    PlayerState.inventory.xpGains += (pickup.count || 1);
+                } else if (pickup.item === 'potion') {
+                    PlayerState.inventory.potions += (pickup.count || 1);
+                }
+                PlayerState.save();
+                DialogManager.showDialog(pickup.dialog || ["You found an item!"]);
+                return;
+            }
+        }
+
         // Check for trainers
-        if (tile === -13 || tile === -14 || tile === -16) {
+        if (tile === -13 || tile === -14 || tile === -16 || tile === -18 || tile === -19) {
+            var trainerTileSuffix = { '-13': '_trainer1', '-14': '_trainer2', '-18': '_trainer1', '-19': '_trainer2' };
             var trainerKey = null;
-            if (tile === -13 && this.mapKey === 'route1') trainerKey = 'route1_trainer1';
-            else if (tile === -14 && this.mapKey === 'route1') trainerKey = 'route1_trainer2';
-            else if (tile === -16) trainerKey = 'gymLeader';
+            if (tile === -16) trainerKey = 'gymLeader';
+            else trainerKey = this.mapKey + (trainerTileSuffix[String(tile)] || '_trainer1');
 
             if (trainerKey && TRAINERS[trainerKey]) {
                 // Check if already defeated
@@ -560,8 +580,8 @@ var OverworldMixin = {
                 'town': 'TownScene', 'route1': 'RouteScene',
                 'worldMap': 'WorldMapScene', 'gymCity': 'GymCityScene'
             };
-            var targetScene = sceneMap[exit.targetMap];
-            if (!targetScene) return;
+            var targetScene = sceneMap[exit.targetMap] || 'GenericMapScene';
+            if (!MAPS[exit.targetMap]) return;
 
             PlayerState.position.map = exit.targetMap;
             PlayerState.position.x = exit.targetX;

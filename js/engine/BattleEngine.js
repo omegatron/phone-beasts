@@ -9,10 +9,14 @@ var BattleEngine = {
         normal:   { fire: 1, water: 1, grass: 1, electric: 1, ground: 1, normal: 1 }
     },
 
-    getTypeMultiplier: function(moveType, defenderType) {
+    getTypeMultiplier: function(moveType, defenderType, defenderType2) {
         var chart = this.typeChart[moveType];
         if (!chart) return 1;
-        return chart[defenderType] || 1;
+        var mult = chart[defenderType] || 1;
+        if (defenderType2) {
+            mult *= (chart[defenderType2] || 1);
+        }
+        return mult;
     },
 
     calcDamage: function(attacker, move, defender, attackerBuffs, defenderBuffs) {
@@ -22,10 +26,10 @@ var BattleEngine = {
         var atk = attacker.stats.atk * (1 + (attackerBuffs.atk || 0));
         var def = defender.stats.def * (1 + (defenderBuffs.def || 0));
         var power = move.power;
-        var typeMultiplier = this.getTypeMultiplier(move.type, defender.type);
+        var typeMultiplier = this.getTypeMultiplier(move.type, defender.type, defender.type2);
 
-        // STAB (Same Type Attack Bonus)
-        var stab = (move.type === attacker.type) ? 1.5 : 1;
+        // STAB (Same Type Attack Bonus) - check both types
+        var stab = (move.type === attacker.type || move.type === attacker.type2) ? 1.5 : 1;
 
         var baseDmg = ((2 * level / 5 + 2) * power * atk / def) / 50 + 2;
         var random = 0.85 + Math.random() * 0.15;
