@@ -6,6 +6,7 @@ var OverworldMixin = {
             '_createShopkeepNPCs', '_setupCamera', '_showLocationName', '_canMoveTo',
             '_checkExit', '_doExit', '_checkDoor', '_movePlayer', '_checkEncounter',
             '_interact', '_handleShop', '_handleStarter', '_professorIntercept',
+            '_updateNPCMovement', '_checkTrainerVision',
             'updateOverworld'];
         for (var i = 0; i < methods.length; i++) {
             this[methods[i]] = OverworldMixin[methods[i]];
@@ -24,6 +25,8 @@ var OverworldMixin = {
         this.inputCooldown = 0;
         this.encounterCooldown = 0;
         this.npcSprites = {};
+        this.npcMoveTimers = {};
+        this.trainerVisionTriggered = false;
 
         DialogManager.init(this);
         this._renderMap();
@@ -107,7 +110,7 @@ var OverworldMixin = {
         var trainerTileMap = {
             '-13': { suffix: '_trainer1', sprite: 'npc_trainer_down' },
             '-14': { suffix: '_trainer2', sprite: 'npc_trainer_down' },
-            '-16': { key: 'gymLeader', sprite: 'npc_gymleader_down' },
+            '-16': { key: null, sprite: 'npc_gymleader_down' },
             '-18': { suffix: '_trainer1', sprite: 'npc_trainer_down' },
             '-19': { suffix: '_trainer2', sprite: 'npc_trainer_down' }
         };
@@ -117,7 +120,14 @@ var OverworldMixin = {
                 var info = trainerTileMap[tileStr];
                 if (!info) continue;
 
-                var trainerKey = info.key || (this.mapKey + info.suffix);
+                var trainerKey = info.key;
+                if (!trainerKey) {
+                    if (tileStr === '-16') {
+                        trainerKey = this.mapKey === 'stormridgeGym' ? 'gymLeader2' : 'gymLeader';
+                    } else {
+                        trainerKey = this.mapKey + (info.suffix || '_trainer1');
+                    }
+                }
                 if (!TRAINERS[trainerKey]) continue;
 
                 var nx = x * this.tileSize + this.tileSize / 2;
@@ -233,6 +243,10 @@ var OverworldMixin = {
         if (TouchControls.justPressed('a') && !this.isMoving) {
             this._interact();
         }
+
+        // NPC wandering and trainer vision
+        this._updateNPCMovement(delta);
+        this._checkTrainerVision();
     },
 
     _canMoveTo: function(x, y) {
@@ -263,7 +277,8 @@ var OverworldMixin = {
         var exit = exitResult.exit;
         var sceneMap = {
             'town': 'TownScene', 'route1': 'RouteScene',
-            'worldMap': 'WorldMapScene', 'gymCity': 'GymCityScene'
+            'worldMap': 'WorldMapScene', 'gymCity': 'GymCityScene',
+            'stormridgeCity': 'GenericMapScene'
         };
         var targetScene = sceneMap[exit.targetMap] || 'GenericMapScene';
         if (!MAPS[exit.targetMap]) return;
@@ -419,6 +434,96 @@ var OverworldMixin = {
         }
     },
 
+    _updateNPCMovement: function(delta) {
+        // Move non-trainer NPCs randomly in non-interior, non-battle areas
+        if (this.mapData.isInterior || this.mapData.encounterRate > 0) return;
+        var npcs = this.mapData.npcs;
+        for (var key in npcs) {
+            var npc = npcs[key];
+            if (npc.action) continue; // Don't move functional NPCs (healer, shop, professor)
+            if (!this.npcMoveTimers[key]) this.npcMoveTimers[key] = 2000 + Math.random() * 3000;
+            this.npcMoveTimers[key] -= delta;
+            if (this.npcMoveTimers[key] <= 0) {
+                this.npcMoveTimers[key] = 3000 + Math.random() * 4000;
+                var dirs = [{dx:0,dy:-1,f:'up'},{dx:0,dy:1,f:'down'},{dx:-1,dy:0,f:'left'},{dx:1,dy:0,f:'right'}];
+                var d = dirs[Math.floor(Math.random() * dirs.length)];
+                var nx = npc.x + d.dx, ny = npc.y + d.dy;
+                // Check bounds and walkability
+                if (this._canMoveTo(nx, ny) && !(nx === this.playerGridX && ny === this.playerGridY)) {
+                    var data = this.mapData.data;
+                    // Don't walk onto special tiles
+                    if (ny >= 0 && ny < data.length && nx >= 0 && nx < data[0].length && data[ny][nx] >= 0) {
+                        npc.x = nx; npc.y = ny; npc.dir = d.f;
+                        var sprite = this.npcSprites[key];
+                        if (sprite) {
+                            var self = this;
+                            var targetPx = nx * this.tileSize + this.tileSize / 2;
+                            var targetPy = ny * this.tileSize + this.tileSize / 2 - 2;
+                            sprite.setTexture(npc.sprite + '_' + d.f);
+                            this.tweens.add({ targets: sprite, x: targetPx, y: targetPy, duration: 300 });
+                        }
+                    }
+                }
+            }
+        }
+    },
+
+    _checkTrainerVision: function() {
+        if (this.trainerVisionTriggered || this.isMoving) return;
+        if (DialogManager.isShowing() || MenuUI.isOpen) return;
+        // Check if any undefeated trainer can see the player (within 4 tiles in facing direction)
+        for (var spriteKey in this.npcSprites) {
+            if (spriteKey.indexOf('trainer_') !== 0) continue;
+            var sprite = this.npcSprites[spriteKey];
+            if (!sprite || !sprite.trainerKey) continue;
+            var trainerKey = sprite.trainerKey;
+            if (PlayerState.defeatedTrainers.indexOf(trainerKey) >= 0) continue;
+            if (!TRAINERS[trainerKey]) continue;
+
+            var tx = sprite.gridX, ty = sprite.gridY;
+            var px = this.playerGridX, py = this.playerGridY;
+            var visionRange = 4;
+            var seen = false;
+
+            // Determine trainer facing direction from map tile
+            // Trainers face down by default, but check if player is in line of sight in any cardinal direction
+            if (tx === px && py > ty && py <= ty + visionRange) seen = true;      // player below
+            else if (tx === px && py < ty && py >= ty - visionRange) seen = true;  // player above
+            else if (ty === py && px > tx && px <= tx + visionRange) seen = true;  // player right
+            else if (ty === py && px < tx && px >= tx - visionRange) seen = true;  // player left
+
+            if (seen) {
+                this.trainerVisionTriggered = true;
+                var trainer = TRAINERS[trainerKey];
+                var self = this;
+
+                // Show exclamation mark
+                var exMark = this.add.text(
+                    tx * this.tileSize + this.tileSize / 2,
+                    ty * this.tileSize - 6,
+                    '!', { fontSize: '16px', fontFamily: 'monospace', color: '#e74c3c', fontStyle: 'bold' }
+                ).setOrigin(0.5).setDepth(100);
+                this.tweens.add({ targets: exMark, y: exMark.y - 8, alpha: 0, delay: 800, duration: 400, onComplete: function() { exMark.destroy(); } });
+
+                this.time.delayedCall(600, function() {
+                    DialogManager.showDialog(trainer.dialog, function() {
+                        var enemyTeam = BattleEngine.createTrainerTeam(trainerKey);
+                        PlayerState.save();
+                        self.scene.start('BattleScene', {
+                            type: 'trainer',
+                            trainerKey: trainerKey,
+                            trainerName: trainer.name,
+                            enemyTeam: enemyTeam,
+                            returnScene: self.scene.key,
+                            isGymLeader: trainerKey === 'gymLeader' || trainerKey === 'gymLeader2'
+                        });
+                    });
+                });
+                return;
+            }
+        }
+    },
+
     _interact: function() {
         // Check what's in front of the player
         var dx = 0, dy = 0;
@@ -489,7 +594,7 @@ var OverworldMixin = {
         if (tile === -13 || tile === -14 || tile === -16 || tile === -18 || tile === -19) {
             var trainerTileSuffix = { '-13': '_trainer1', '-14': '_trainer2', '-18': '_trainer1', '-19': '_trainer2' };
             var trainerKey = null;
-            if (tile === -16) trainerKey = 'gymLeader';
+            if (tile === -16) trainerKey = this.mapKey === 'stormridgeGym' ? 'gymLeader2' : 'gymLeader';
             else trainerKey = this.mapKey + (trainerTileSuffix[String(tile)] || '_trainer1');
 
             if (trainerKey && TRAINERS[trainerKey]) {
@@ -510,7 +615,7 @@ var OverworldMixin = {
                         trainerName: trainer.name,
                         enemyTeam: enemyTeam,
                         returnScene: self.scene.key,
-                        isGymLeader: trainerKey === 'gymLeader'
+                        isGymLeader: trainerKey === 'gymLeader' || trainerKey === 'gymLeader2'
                     });
                 });
             }

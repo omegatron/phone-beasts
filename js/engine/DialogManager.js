@@ -59,7 +59,7 @@ var DialogManager = {
         var scene = this.scene;
         var cam = scene.cameras.main;
         var boxW = cam.width - 16;
-        var boxH = 72;
+        var boxH = 90;
         // Position dialog above the touch controls overlay (bottom 45% of screen)
         var boxX = 8;
         var boxY = cam.height * 0.50 - boxH;

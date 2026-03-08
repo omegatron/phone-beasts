@@ -35,7 +35,7 @@ var MenuUI = {
         this.container.add(overlay);
 
         // Menu panel
-        var panelW = 180, panelH = 310;
+        var panelW = 180, panelH = 340;
         var px = w - panelW - 10, py = 10;
 
         var bg = scene.add.graphics();
@@ -51,7 +51,7 @@ var MenuUI = {
         }).setOrigin(0.5));
 
         // Menu items
-        var items = ['Team', 'Bag', 'Map', 'Save', 'Multiplayer', 'Fullscreen', 'Close'];
+        var items = ['Team', 'Bag', 'Map', 'Badges', 'Save', 'Multiplayer', 'Fullscreen', 'Close'];
         this.menuItems = [];
 
         for (var i = 0; i < items.length; i++) {
@@ -84,10 +84,11 @@ var MenuUI = {
             case 0: this._showTeam(); break;
             case 1: this._showBag(); break;
             case 2: this._showMap(); break;
-            case 3: this._saveGame(); break;
-            case 4: this._showMultiplayer(); break;
-            case 5: this._toggleFullscreen(); break;
-            case 6: this.close(); break;
+            case 3: this._showBadges(); break;
+            case 4: this._saveGame(); break;
+            case 5: this._showMultiplayer(); break;
+            case 6: this._toggleFullscreen(); break;
+            case 7: this.close(); break;
         }
     },
 
@@ -286,16 +287,18 @@ var MenuUI = {
         var cx = cam.width / 2;
         var mapH = cam.height - 80; // usable height (below title, above back button)
         var topY = 45;
-        var stepY = mapH / 7;
+        var stepY = mapH / 9;
 
         var nodes = [
-            { key: 'town',       name: 'Breezeholm',     x: cx,        y: topY + stepY * 0.5, color: 0xf1c40f },
-            { key: 'route1',     name: 'Route 1',        x: cx,        y: topY + stepY * 1.5, color: 0xecf0f1 },
-            { key: 'route2',     name: 'Route 2',        x: cx,        y: topY + stepY * 2.5, color: 0xecf0f1 },
-            { key: 'mistyWoods', name: 'Misty Woods',    x: cx - 30,   y: topY + stepY * 3.5, color: 0x2ecc71 },
-            { key: 'mountainPath', name: 'Crystal Peak',  x: cx - 80,  y: topY + stepY * 4.5, color: 0x95a5a6 },
-            { key: 'route3',     name: 'Route 3',        x: cx + 40,   y: topY + stepY * 4.5, color: 0xecf0f1 },
-            { key: 'gymCity',    name: 'Tidepool City',   x: cx + 40,  y: topY + stepY * 5.5, color: 0xf1c40f }
+            { key: 'town',       name: 'Breezeholm',       x: cx,        y: topY + stepY * 0.5, color: 0xf1c40f },
+            { key: 'route1',     name: 'Route 1',          x: cx,        y: topY + stepY * 1.3, color: 0xecf0f1 },
+            { key: 'route2',     name: 'Route 2',          x: cx,        y: topY + stepY * 2.1, color: 0xecf0f1 },
+            { key: 'mistyWoods', name: 'Misty Woods',      x: cx - 30,   y: topY + stepY * 3.0, color: 0x2ecc71 },
+            { key: 'mountainPath', name: 'Crystal Peak',    x: cx - 80,  y: topY + stepY * 3.9, color: 0x95a5a6 },
+            { key: 'route3',     name: 'Route 3',          x: cx + 40,   y: topY + stepY * 3.9, color: 0xecf0f1 },
+            { key: 'gymCity',    name: 'Tidepool City',     x: cx + 40,  y: topY + stepY * 4.9, color: 0xf1c40f },
+            { key: 'route4',     name: 'Route 4',          x: cx + 40,  y: topY + stepY * 5.9, color: 0xecf0f1 },
+            { key: 'stormridgeCity', name: 'Stormridge City', x: cx + 40, y: topY + stepY * 6.9, color: 0xf1c40f }
         ];
 
         // Build lookup for drawing connections
@@ -311,7 +314,9 @@ var MenuUI = {
             ['route2', 'mistyWoods'],
             ['mistyWoods', 'mountainPath'],
             ['mistyWoods', 'route3'],
-            ['route3', 'gymCity']
+            ['route3', 'gymCity'],
+            ['gymCity', 'route4'],
+            ['route4', 'stormridgeCity']
         ];
 
         // Draw connection lines
@@ -373,6 +378,108 @@ var MenuUI = {
         this.subMenu.add(nodeGfx);
 
         // Back button
+        var closeBtn = scene.add.text(cam.width / 2, cam.height - 30, '[ Back ]', {
+            fontSize: '14px', fontFamily: 'monospace', color: '#e74c3c'
+        }).setOrigin(0.5).setInteractive();
+        closeBtn.on('pointerdown', function() {
+            if (MenuUI.subMenu) { MenuUI.subMenu.destroy(); MenuUI.subMenu = null; }
+        });
+        this.subMenu.add(closeBtn);
+    },
+
+    _showBadges: function() {
+        var scene = this.scene;
+        var cam = scene.cameras.main;
+        if (this.subMenu) this.subMenu.destroy();
+
+        this.subMenu = scene.add.container(0, 0).setDepth(600).setScrollFactor(0);
+
+        var bg = scene.add.graphics();
+        bg.fillStyle(0x1a1a2e, 0.97);
+        bg.fillRect(0, 0, cam.width, cam.height);
+        this.subMenu.add(bg);
+
+        this.subMenu.add(scene.add.text(cam.width / 2, 15, 'BADGES', {
+            fontSize: '16px', fontFamily: 'monospace', color: '#f1c40f', fontStyle: 'bold'
+        }).setOrigin(0.5));
+
+        var allBadges = [
+            { key: 'tidepool', name: 'Tidepool Badge', leader: 'Marina', type: 'Water', color: 0x3498db, accent: '#3498db' },
+            { key: 'stormridge', name: 'Stormridge Badge', leader: 'Volt', type: 'Electric', color: 0xf1c40f, accent: '#f1c40f' }
+        ];
+
+        var cx = cam.width / 2;
+        var startY = 55;
+
+        for (var i = 0; i < allBadges.length; i++) {
+            var badge = allBadges[i];
+            var earned = PlayerState.badges.indexOf(badge.key) >= 0;
+            var by = startY + i * 100;
+
+            // Badge shape (octagonal gem)
+            var badgeGfx = scene.add.graphics();
+            if (earned) {
+                badgeGfx.fillStyle(badge.color, 1);
+                badgeGfx.lineStyle(2, 0xffffff, 0.8);
+            } else {
+                badgeGfx.fillStyle(0x333333, 0.5);
+                badgeGfx.lineStyle(2, 0x555555, 0.5);
+            }
+            // Draw octagon
+            var bx = cx - 60, bcy = by + 30, br = 22;
+            var points = [];
+            for (var a = 0; a < 8; a++) {
+                var angle = (a * Math.PI * 2 / 8) - Math.PI / 8;
+                points.push({ x: bx + Math.cos(angle) * br, y: bcy + Math.sin(angle) * br });
+            }
+            badgeGfx.beginPath();
+            badgeGfx.moveTo(points[0].x, points[0].y);
+            for (var p = 1; p < points.length; p++) badgeGfx.lineTo(points[p].x, points[p].y);
+            badgeGfx.closePath();
+            badgeGfx.fillPath();
+            badgeGfx.strokePath();
+
+            // Inner diamond
+            if (earned) {
+                badgeGfx.fillStyle(0xffffff, 0.3);
+                badgeGfx.fillRect(bx - 6, bcy - 6, 12, 12);
+            }
+            this.subMenu.add(badgeGfx);
+
+            // Badge name and info
+            var nameColor = earned ? badge.accent : '#555555';
+            var descColor = earned ? '#bdc3c7' : '#444444';
+            this.subMenu.add(scene.add.text(cx, by + 8, badge.name, {
+                fontSize: '13px', fontFamily: 'monospace', color: nameColor, fontStyle: 'bold'
+            }).setOrigin(0.5, 0));
+
+            this.subMenu.add(scene.add.text(cx, by + 26, 'Leader: ' + badge.leader + ' (' + badge.type + '-type)', {
+                fontSize: '10px', fontFamily: 'monospace', color: descColor
+            }).setOrigin(0.5, 0));
+
+            this.subMenu.add(scene.add.text(cx, by + 42, earned ? 'EARNED' : 'Not yet earned', {
+                fontSize: '10px', fontFamily: 'monospace', color: earned ? '#2ecc71' : '#7f8c8d',
+                fontStyle: earned ? 'bold' : ''
+            }).setOrigin(0.5, 0));
+
+            // Shimmer effect on earned badges
+            if (earned) {
+                var star = scene.add.text(bx, bcy, '\u2605', {
+                    fontSize: '14px', color: '#fff'
+                }).setOrigin(0.5);
+                this.subMenu.add(star);
+                scene.tweens.add({
+                    targets: star, alpha: 0.3, duration: 800,
+                    yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+                });
+            }
+        }
+
+        // Total count
+        this.subMenu.add(scene.add.text(cx, cam.height - 60, PlayerState.badges.length + ' / ' + allBadges.length + ' Badges', {
+            fontSize: '12px', fontFamily: 'monospace', color: '#95a5a6'
+        }).setOrigin(0.5));
+
         var closeBtn = scene.add.text(cam.width / 2, cam.height - 30, '[ Back ]', {
             fontSize: '14px', fontFamily: 'monospace', color: '#e74c3c'
         }).setOrigin(0.5).setInteractive();
@@ -522,7 +629,7 @@ var MenuUI = {
             this._draw();
         }
         if (TouchControls.justPressed('down')) {
-            this.selectedIndex = Math.min(6, this.selectedIndex + 1);
+            this.selectedIndex = Math.min(7, this.selectedIndex + 1);
             this._draw();
         }
         if (TouchControls.justPressed('a')) {

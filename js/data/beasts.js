@@ -427,6 +427,15 @@ var BEASTS = {
         learnableMoves: { 18: 'voltCrush', 22: 'stormSurge' },
         desc: 'A rare crystalline beast found only on mountain summits.',
         colors: { primary: '#d5d8dc', secondary: '#5dade2', accent: '#aeb6bf' }
+    },
+    anthropobeast: {
+        id: 'anthropobeast', name: 'Anthropobeast', type: 'water', type2: 'fire',
+        baseStats: { hp: 120, atk: 120, def: 120, spd: 120 },
+        baseXP: 255,
+        defaultMoves: ['opus', 'sonnet', 'haiku', 'hydroBlast'],
+        learnableMoves: {},
+        desc: 'A mysterious humanoid beast with curly brown hair. Legends say it thinks deeply about everything.',
+        colors: { primary: '#8B6914', secondary: '#F5DEB3', accent: '#4a3000' }
     }
 };
 
@@ -470,6 +479,14 @@ var ENCOUNTERS = {
         { id: 'pudlop',     minLevel: 10, maxLevel: 12, weight: 14 },
         { id: 'dustmole',   minLevel: 10, maxLevel: 13, weight: 12 },
         { id: 'pyrobat',    minLevel: 11, maxLevel: 13, weight: 12 }
+    ],
+    route4: [
+        { id: 'zappfly',    minLevel: 13, maxLevel: 16, weight: 20 },
+        { id: 'sparkit',    minLevel: 13, maxLevel: 15, weight: 15 },
+        { id: 'glimworm',   minLevel: 14, maxLevel: 16, weight: 18 },
+        { id: 'dustmole',   minLevel: 13, maxLevel: 16, weight: 15 },
+        { id: 'cinderpup',  minLevel: 14, maxLevel: 16, weight: 16 },
+        { id: 'shellbit',   minLevel: 13, maxLevel: 15, weight: 16 }
     ],
     // Keep worldMap for backwards compat with old saves
     worldMap: [
@@ -549,6 +566,25 @@ var TRAINERS = {
             { id: 'shellbit', level: 13, moves: ['splashJet', 'shellGuard', 'headbutt'] }
         ]
     },
+    // Tidepool Gym members
+    gymCityGym_trainer1: {
+        name: 'Swimmer Coral',
+        dialog: ["The gym leader awaits beyond us!", "But first you'll have to get past me!"],
+        defeatDialog: ["You're strong enough... maybe you can beat Marina!"],
+        team: [
+            { id: 'coralite', level: 12, moves: ['splashJet', 'harden', 'tackle'] },
+            { id: 'frostfin', level: 12, moves: ['splashJet', 'shellGuard', 'tackle'] }
+        ]
+    },
+    gymCityGym_trainer2: {
+        name: 'Sailor Reed',
+        dialog: ["Marina taught me everything I know!", "Let's see what you've got!"],
+        defeatDialog: ["Wow, you might actually challenge Marina!"],
+        team: [
+            { id: 'shellbit', level: 13, moves: ['splashJet', 'shellGuard', 'headbutt'] },
+            { id: 'pudlop',   level: 13, moves: ['splashJet', 'mudSlap', 'tackle'] }
+        ]
+    },
     gymLeader: {
         name: 'Leader Marina',
         dialog: [
@@ -566,6 +602,64 @@ var TRAINERS = {
             { id: 'coralite', level: 14, moves: ['splashJet', 'harden', 'tidalWave', 'headbutt'] },
             { id: 'shellbit', level: 15, moves: ['splashJet', 'shellGuard', 'headbutt', 'tidalWave'] },
             { id: 'tidalin',  level: 17, moves: ['splashJet', 'tidalWave', 'shellGuard', 'aquaSlam'] }
+        ]
+    },
+    // Route 4 trainers
+    route4_trainer1: {
+        name: 'Electrician Watts',
+        dialog: ["I keep the power lines running.", "My beasts keep me charged up!"],
+        defeatDialog: ["Looks like I'm out of juice..."],
+        team: [
+            { id: 'sparkit', level: 15, moves: ['zap', 'thunderSpark', 'tackle', 'quickDash'] },
+            { id: 'glimworm', level: 15, moves: ['zap', 'thunderSpark', 'flash'] },
+            { id: 'zappfly', level: 16, moves: ['zap', 'thunderSpark', 'buzz'] }
+        ]
+    },
+    route4_trainer2: {
+        name: 'Ranger Storm',
+        dialog: ["Thunder Pass is dangerous!", "Only the strong survive here!"],
+        defeatDialog: ["The pass bows to the strong..."],
+        team: [
+            { id: 'dustmole', level: 15, moves: ['dig', 'scratch', 'sandVeil'] },
+            { id: 'cinderpup', level: 16, moves: ['ember', 'flameClaw', 'bite', 'quickDash'] }
+        ]
+    },
+    // Stormridge Gym members
+    stormridgeGym_trainer1: {
+        name: 'Technician Spark',
+        dialog: ["Leader Volt's power is legendary!", "But you have to beat us first!"],
+        defeatDialog: ["Shocking... you're really strong!"],
+        team: [
+            { id: 'sparkit', level: 16, moves: ['zap', 'thunderSpark', 'tackle', 'quickDash'] },
+            { id: 'zappfly', level: 17, moves: ['zap', 'thunderSpark', 'buzz'] }
+        ]
+    },
+    stormridgeGym_trainer2: {
+        name: 'Engineer Amp',
+        dialog: ["Our gym runs on pure electricity!", "Can you handle the voltage?"],
+        defeatDialog: ["You've got more power than I thought!"],
+        team: [
+            { id: 'glimworm', level: 17, moves: ['zap', 'thunderSpark', 'flash', 'tackle'] },
+            { id: 'sparkit',  level: 17, moves: ['zap', 'thunderSpark', 'quickDash', 'tackle'] }
+        ]
+    },
+    gymLeader2: {
+        name: 'Leader Volt',
+        dialog: [
+            "Welcome to the Stormridge Gym!",
+            "I am Volt, the Lightning Master!",
+            "Feel the shock of my electric beasts!"
+        ],
+        defeatDialog: [
+            "Thunderous! You've weathered my storm!",
+            "You've earned the Stormridge Badge!",
+            "Your journey continues... stronger than ever!"
+        ],
+        team: [
+            { id: 'sparkit',  level: 18, moves: ['thunderSpark', 'zap', 'quickDash', 'tackle'] },
+            { id: 'zappfly',  level: 18, moves: ['thunderSpark', 'buzz', 'zap', 'quickDash'] },
+            { id: 'glimworm', level: 19, moves: ['thunderSpark', 'voltCrush', 'flash', 'zap'] },
+            { id: 'voltrode', level: 21, moves: ['voltCrush', 'stormSurge', 'flameClaw', 'quickDash'] }
         ]
     }
 };

@@ -51,5 +51,10 @@ var MOVES = {
     flash:      { name: 'Flash',       type: 'fire',     power: 0, accuracy: 95,  pp: 20, effect: { stat: 'accuracy', target: 'enemy', amount: -0.1 } },
     sandVeil:   { name: 'Sand Veil',   type: 'ground',   power: 0, accuracy: 100, pp: 15, effect: { stat: 'def', target: 'self', amount: 0.2 } },
     toxicSpore: { name: 'Toxic Spore', type: 'grass',    power: 0, accuracy: 90,  pp: 20, effect: { stat: 'def', target: 'enemy', amount: -0.15 } },
-    galeForce:  { name: 'Gale Force',  type: 'normal',   power: 0, accuracy: 100, pp: 15, effect: { stat: 'spd', target: 'self', amount: 0.3 } }
+    galeForce:  { name: 'Gale Force',  type: 'normal',   power: 0, accuracy: 100, pp: 15, effect: { stat: 'spd', target: 'self', amount: 0.3 } },
+
+    // Anthropobeast special moves
+    opus:       { name: 'Opus',       type: 'water',    power: 95, accuracy: 90, pp: 5,  effect: null },
+    sonnet:     { name: 'Sonnet',     type: 'fire',     power: 90, accuracy: 95, pp: 8,  effect: null },
+    haiku:      { name: 'Haiku',      type: 'ground',   power: 85, accuracy: 100, pp: 10, effect: null }
 };

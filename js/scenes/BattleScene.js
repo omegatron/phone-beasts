@@ -689,16 +689,18 @@ var BattleScene = new Phaser.Class({
             PlayerState.defeatedTrainers.push(this.trainerKey);
 
             if (this.isGymLeader) {
-                PlayerState.badges.push('tidepool');
+                var badgeName = this.trainerKey === 'gymLeader2' ? 'stormridge' : 'tidepool';
+                var badgeDisplay = this.trainerKey === 'gymLeader2' ? 'Stormridge Badge' : 'Tidepool Badge';
+                if (PlayerState.badges.indexOf(badgeName) === -1) {
+                    PlayerState.badges.push(badgeName);
+                }
                 PlayerState.save();
 
                 DialogManager.showDialog([
                     "You defeated " + this.trainerName + "!",
-                    "Congratulations! You earned the Tidepool Badge!",
+                    "Congratulations! You earned the " + badgeDisplay + "!",
                     "This badge proves your strength as a beast trainer.",
-                    "Your journey has only just begun...",
-                    "More gyms, more beasts, and greater challenges await!",
-                    "Thank you for playing Phone Beasts!"
+                    "Your journey continues... more challenges await!"
                 ], function() {
                     self._endBattle(true);
                 });

@@ -550,4 +550,33 @@ var SpriteGenerator = {
     sh.geomite = function(c,w,h,co,v){S._drawRockBugT(c,w,h,co,v,true);};
     sh.seedpod = function(c,w,h,co,v){S._drawSeedT(c,w,h,co,v);};
     sh.crysteel = function(c,w,h,co,v){S._drawCrystalT(c,w,h,co,v);};
+    sh.anthropobeast = function(ctx,w,h,c,view) {
+        var s=w/16, p=S._p;
+        // Brown curly hair
+        for(var x=5;x<11;x++) p(ctx,x,1,s,c.primary);
+        for(var x=4;x<12;x++) p(ctx,x,2,s,c.primary);
+        p(ctx,4,3,s,c.primary);p(ctx,5,3,s,c.primary);p(ctx,10,3,s,c.primary);p(ctx,11,3,s,c.primary);
+        // Hair curls
+        p(ctx,3,2,s,c.primary);p(ctx,12,2,s,c.primary);p(ctx,3,3,s,c.primary);p(ctx,12,3,s,c.primary);
+        // Face
+        for(var y=3;y<7;y++) for(var x=5;x<11;x++) p(ctx,x,y,s,c.secondary);
+        // Eyes
+        if(view==='front'){p(ctx,6,4,s,'#2c3e50');p(ctx,9,4,s,'#2c3e50');}
+        // Smile
+        p(ctx,7,5,s,'#c0392b');p(ctx,8,5,s,'#c0392b');
+        // Body (coat/suit)
+        for(var y=7;y<12;y++) for(var x=4;x<12;x++) p(ctx,x,y,s,c.accent);
+        // Shirt collar
+        p(ctx,7,7,s,'#ecf0f1');p(ctx,8,7,s,'#ecf0f1');
+        // Arms
+        for(var y=7;y<11;y++){p(ctx,3,y,s,c.accent);p(ctx,12,y,s,c.accent);}
+        // Hands
+        p(ctx,3,11,s,c.secondary);p(ctx,12,11,s,c.secondary);
+        // Legs
+        p(ctx,6,12,s,'#2c3e50');p(ctx,7,12,s,'#2c3e50');p(ctx,8,12,s,'#2c3e50');p(ctx,9,12,s,'#2c3e50');
+        p(ctx,6,13,s,'#2c3e50');p(ctx,7,13,s,'#2c3e50');p(ctx,8,13,s,'#2c3e50');p(ctx,9,13,s,'#2c3e50');
+        // Aura glow
+        p(ctx,2,5,s,'rgba(241,196,15,0.3)');p(ctx,13,5,s,'rgba(241,196,15,0.3)');
+        p(ctx,2,8,s,'rgba(52,152,219,0.3)');p(ctx,13,8,s,'rgba(52,152,219,0.3)');
+    };
 })();
