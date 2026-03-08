@@ -9,6 +9,8 @@ var PlayerState = {
     hasStarter: false,
     receivedOrbs: false,
     interiorReturn: null,
+    seenBeasts: [],
+    caughtBeasts: [],
 
     init: function() {
         this.load();
@@ -58,9 +60,23 @@ var PlayerState = {
         };
     },
 
+    markSeen: function(beastId) {
+        if (this.seenBeasts.indexOf(beastId) === -1) {
+            this.seenBeasts.push(beastId);
+        }
+    },
+
+    markCaught: function(beastId) {
+        this.markSeen(beastId);
+        if (this.caughtBeasts.indexOf(beastId) === -1) {
+            this.caughtBeasts.push(beastId);
+        }
+    },
+
     addBeastToTeam: function(beast) {
         if (this.team.length < 6) {
             this.team.push(beast);
+            this.markCaught(beast.id);
             return true;
         }
         return false;
@@ -178,7 +194,9 @@ var PlayerState = {
                 collectedPickups: this.collectedPickups,
                 hasStarter: this.hasStarter,
                 receivedOrbs: this.receivedOrbs,
-                interiorReturn: this.interiorReturn
+                interiorReturn: this.interiorReturn,
+                seenBeasts: this.seenBeasts,
+                caughtBeasts: this.caughtBeasts
             }));
         } catch(e) {}
     },
@@ -206,6 +224,8 @@ var PlayerState = {
                 this.hasStarter = save.hasStarter || false;
                 this.receivedOrbs = save.receivedOrbs || false;
                 this.interiorReturn = save.interiorReturn || null;
+                this.seenBeasts = save.seenBeasts || [];
+                this.caughtBeasts = save.caughtBeasts || [];
                 return true;
             }
         } catch(e) {}

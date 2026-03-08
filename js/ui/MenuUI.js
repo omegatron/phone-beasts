@@ -35,7 +35,7 @@ var MenuUI = {
         this.container.add(overlay);
 
         // Menu panel
-        var panelW = 180, panelH = 340;
+        var panelW = 180, panelH = 375;
         var px = w - panelW - 10, py = 10;
 
         var bg = scene.add.graphics();
@@ -51,7 +51,7 @@ var MenuUI = {
         }).setOrigin(0.5));
 
         // Menu items
-        var items = ['Team', 'Bag', 'Map', 'Badges', 'Save', 'Multiplayer', 'Fullscreen', 'Close'];
+        var items = ['Team', 'Bag', 'Monsterdex', 'Map', 'Badges', 'Save', 'Multiplayer', 'Fullscreen', 'Close'];
         this.menuItems = [];
 
         for (var i = 0; i < items.length; i++) {
@@ -83,12 +83,13 @@ var MenuUI = {
         switch(idx) {
             case 0: this._showTeam(); break;
             case 1: this._showBag(); break;
-            case 2: this._showMap(); break;
-            case 3: this._showBadges(); break;
-            case 4: this._saveGame(); break;
-            case 5: this._showMultiplayer(); break;
-            case 6: this._toggleFullscreen(); break;
-            case 7: this.close(); break;
+            case 2: this._showMonsterdex(); break;
+            case 3: this._showMap(); break;
+            case 4: this._showBadges(); break;
+            case 5: this._saveGame(); break;
+            case 6: this._showMultiplayer(); break;
+            case 7: this._toggleFullscreen(); break;
+            case 8: this.close(); break;
         }
     },
 
@@ -257,6 +258,293 @@ var MenuUI = {
         closeBtn.on('pointerdown', function() {
             if (MenuUI.subMenu) { MenuUI.subMenu.destroy(); MenuUI.subMenu = null; }
             MenuUI._showBag();
+        });
+        this.subMenu.add(closeBtn);
+    },
+
+    _showMonsterdex: function() {
+        var scene = this.scene;
+        var cam = scene.cameras.main;
+        if (this.subMenu) this.subMenu.destroy();
+
+        this.subMenu = scene.add.container(0, 0).setDepth(600).setScrollFactor(0);
+
+        var bg = scene.add.graphics();
+        bg.fillStyle(0x1a1a2e, 0.97);
+        bg.fillRect(0, 0, cam.width, cam.height);
+        this.subMenu.add(bg);
+
+        // Build ordered beast list (exclude anthropobeast from normal dex)
+        var beastOrder = [];
+        for (var key in BEASTS) {
+            if (key === 'anthropobeast') continue;
+            beastOrder.push(key);
+        }
+
+        // Sort: base forms first, then evolutions follow their base
+        var visited = {};
+        var sorted = [];
+        function addChain(id) {
+            if (visited[id]) return;
+            visited[id] = true;
+            var b = BEASTS[id];
+            // Find root of chain
+            if (b.evolvesFrom && BEASTS[b.evolvesFrom] && !visited[b.evolvesFrom]) {
+                addChain(b.evolvesFrom);
+                if (!visited[id]) { visited[id] = true; sorted.push(id); }
+                return;
+            }
+            sorted.push(id);
+            // Add evolutions
+            if (b.evolvesTo && BEASTS[b.evolvesTo]) {
+                addChain(b.evolvesTo);
+            }
+        }
+        for (var i = 0; i < beastOrder.length; i++) addChain(beastOrder[i]);
+
+        // Add anthropobeast at end if seen/caught
+        if (PlayerState.seenBeasts.indexOf('anthropobeast') >= 0 || PlayerState.caughtBeasts.indexOf('anthropobeast') >= 0) {
+            sorted.push('anthropobeast');
+        }
+
+        var totalBeasts = sorted.length;
+        var caughtCount = 0;
+        for (var i = 0; i < sorted.length; i++) {
+            if (PlayerState.caughtBeasts.indexOf(sorted[i]) >= 0) caughtCount++;
+        }
+
+        // Pagination
+        var perPage = 7;
+        this._dexPage = this._dexPage || 0;
+        var maxPage = Math.max(0, Math.ceil(totalBeasts / perPage) - 1);
+        if (this._dexPage > maxPage) this._dexPage = maxPage;
+        var startIdx = this._dexPage * perPage;
+
+        // Title
+        this.subMenu.add(scene.add.text(cam.width / 2, 12, 'MONSTERDEX', {
+            fontSize: '16px', fontFamily: 'monospace', color: '#f1c40f', fontStyle: 'bold'
+        }).setOrigin(0.5));
+
+        // Count
+        this.subMenu.add(scene.add.text(cam.width / 2, 32, 'Caught: ' + caughtCount + ' / ' + totalBeasts, {
+            fontSize: '10px', fontFamily: 'monospace', color: '#95a5a6'
+        }).setOrigin(0.5));
+
+        var typeColors = {
+            fire: '#e74c3c', water: '#3498db', grass: '#2ecc71', electric: '#f1c40f',
+            ground: '#95a5a6', normal: '#bdc3c7'
+        };
+
+        for (var i = startIdx; i < Math.min(startIdx + perPage, totalBeasts); i++) {
+            var beastId = sorted[i];
+            var beast = BEASTS[beastId];
+            var seen = PlayerState.seenBeasts.indexOf(beastId) >= 0;
+            var caught = PlayerState.caughtBeasts.indexOf(beastId) >= 0;
+            var row = i - startIdx;
+            var ry = 50 + row * 52;
+
+            // Dex number
+            var dexNum = '#' + String(i + 1);
+            while (dexNum.length < 4) dexNum = dexNum.charAt(0) + '0' + dexNum.substring(1);
+            this.subMenu.add(scene.add.text(8, ry + 2, dexNum, {
+                fontSize: '9px', fontFamily: 'monospace', color: '#7f8c8d'
+            }));
+
+            if (caught) {
+                // Full info with icon
+                this.subMenu.add(scene.add.image(45, ry + 18, 'beast_' + beastId + '_icon').setScale(0.7));
+                this.subMenu.add(scene.add.text(65, ry, beast.name, {
+                    fontSize: '12px', fontFamily: 'monospace', color: '#ecf0f1', fontStyle: 'bold'
+                }));
+                var typeStr = beast.type.charAt(0).toUpperCase() + beast.type.slice(1);
+                if (beast.type2) typeStr += ' / ' + beast.type2.charAt(0).toUpperCase() + beast.type2.slice(1);
+                this.subMenu.add(scene.add.text(65, ry + 16, typeStr, {
+                    fontSize: '9px', fontFamily: 'monospace', color: typeColors[beast.type] || '#bdc3c7'
+                }));
+
+                // Tap for detail
+                var detailBtn = scene.add.text(65, ry + 30, '[ Details ]', {
+                    fontSize: '8px', fontFamily: 'monospace', color: '#3498db'
+                }).setInteractive();
+                this.subMenu.add(detailBtn);
+                (function(bid) {
+                    detailBtn.on('pointerdown', function() {
+                        MenuUI._showDexDetail(bid);
+                    });
+                })(beastId);
+            } else if (seen) {
+                // Name visible but dimmed, no icon detail
+                this.subMenu.add(scene.add.text(45, ry + 8, '?', {
+                    fontSize: '20px', fontFamily: 'monospace', color: '#555'
+                }));
+                this.subMenu.add(scene.add.text(65, ry, beast.name, {
+                    fontSize: '12px', fontFamily: 'monospace', color: '#7f8c8d'
+                }));
+                this.subMenu.add(scene.add.text(65, ry + 16, 'Seen - not caught', {
+                    fontSize: '9px', fontFamily: 'monospace', color: '#555'
+                }));
+            } else {
+                // Unknown
+                this.subMenu.add(scene.add.text(45, ry + 8, '?', {
+                    fontSize: '20px', fontFamily: 'monospace', color: '#333'
+                }));
+                this.subMenu.add(scene.add.text(65, ry, '???', {
+                    fontSize: '12px', fontFamily: 'monospace', color: '#444'
+                }));
+            }
+        }
+
+        // Page nav
+        var pageText = 'Page ' + (this._dexPage + 1) + '/' + (maxPage + 1);
+        this.subMenu.add(scene.add.text(cam.width / 2, cam.height - 55, pageText, {
+            fontSize: '10px', fontFamily: 'monospace', color: '#95a5a6'
+        }).setOrigin(0.5));
+
+        if (this._dexPage > 0) {
+            var prevBtn = scene.add.text(30, cam.height - 55, '< Prev', {
+                fontSize: '11px', fontFamily: 'monospace', color: '#3498db'
+            }).setInteractive();
+            prevBtn.on('pointerdown', function() {
+                MenuUI._dexPage--;
+                MenuUI._showMonsterdex();
+            });
+            this.subMenu.add(prevBtn);
+        }
+
+        if (this._dexPage < maxPage) {
+            var nextBtn = scene.add.text(cam.width - 30, cam.height - 55, 'Next >', {
+                fontSize: '11px', fontFamily: 'monospace', color: '#3498db'
+            }).setOrigin(1, 0).setInteractive();
+            nextBtn.on('pointerdown', function() {
+                MenuUI._dexPage++;
+                MenuUI._showMonsterdex();
+            });
+            this.subMenu.add(nextBtn);
+        }
+
+        // Back button
+        var closeBtn = scene.add.text(cam.width / 2, cam.height - 30, '[ Back ]', {
+            fontSize: '14px', fontFamily: 'monospace', color: '#e74c3c'
+        }).setOrigin(0.5).setInteractive();
+        closeBtn.on('pointerdown', function() {
+            MenuUI._dexPage = 0;
+            if (MenuUI.subMenu) { MenuUI.subMenu.destroy(); MenuUI.subMenu = null; }
+        });
+        this.subMenu.add(closeBtn);
+    },
+
+    _showDexDetail: function(beastId) {
+        var scene = this.scene;
+        var cam = scene.cameras.main;
+        if (this.subMenu) this.subMenu.destroy();
+
+        this.subMenu = scene.add.container(0, 0).setDepth(600).setScrollFactor(0);
+
+        var bg = scene.add.graphics();
+        bg.fillStyle(0x1a1a2e, 0.97);
+        bg.fillRect(0, 0, cam.width, cam.height);
+        this.subMenu.add(bg);
+
+        var beast = BEASTS[beastId];
+
+        // Beast sprite
+        this.subMenu.add(scene.add.image(cam.width / 2, 70, 'beast_' + beastId + '_front').setScale(3));
+
+        // Name
+        this.subMenu.add(scene.add.text(cam.width / 2, 120, beast.name, {
+            fontSize: '18px', fontFamily: 'monospace', color: '#f1c40f', fontStyle: 'bold'
+        }).setOrigin(0.5));
+
+        // Type
+        var typeStr = beast.type.charAt(0).toUpperCase() + beast.type.slice(1);
+        if (beast.type2) typeStr += ' / ' + beast.type2.charAt(0).toUpperCase() + beast.type2.slice(1);
+        this.subMenu.add(scene.add.text(cam.width / 2, 140, typeStr, {
+            fontSize: '11px', fontFamily: 'monospace', color: '#bdc3c7'
+        }).setOrigin(0.5));
+
+        // Description
+        this.subMenu.add(scene.add.text(cam.width / 2, 162, beast.desc, {
+            fontSize: '10px', fontFamily: 'monospace', color: '#95a5a6',
+            wordWrap: { width: cam.width - 40 }, align: 'center'
+        }).setOrigin(0.5, 0));
+
+        // Base stats
+        var statsY = 200;
+        this.subMenu.add(scene.add.text(cam.width / 2, statsY, 'BASE STATS', {
+            fontSize: '11px', fontFamily: 'monospace', color: '#f1c40f', fontStyle: 'bold'
+        }).setOrigin(0.5));
+
+        var stats = beast.baseStats;
+        var statNames = ['HP', 'ATK', 'DEF', 'SPD'];
+        var statVals = [stats.hp, stats.atk, stats.def, stats.spd];
+        for (var i = 0; i < 4; i++) {
+            var sy = statsY + 18 + i * 18;
+            this.subMenu.add(scene.add.text(40, sy, statNames[i], {
+                fontSize: '10px', fontFamily: 'monospace', color: '#bdc3c7'
+            }));
+            this.subMenu.add(scene.add.text(80, sy, '' + statVals[i], {
+                fontSize: '10px', fontFamily: 'monospace', color: '#ecf0f1', fontStyle: 'bold'
+            }));
+            // Stat bar
+            var barGfx = scene.add.graphics();
+            var barW = Math.min(statVals[i], 120);
+            barGfx.fillStyle(0x333333, 1);
+            barGfx.fillRect(110, sy + 2, 120, 8);
+            var barColor = statVals[i] >= 80 ? 0x2ecc71 : (statVals[i] >= 50 ? 0xf1c40f : 0xe74c3c);
+            barGfx.fillStyle(barColor, 1);
+            barGfx.fillRect(110, sy + 2, barW, 8);
+            this.subMenu.add(barGfx);
+        }
+
+        // Evolution chain
+        var evoY = statsY + 95;
+        var chain = [];
+        // Find root
+        var root = beastId;
+        while (BEASTS[root] && BEASTS[root].evolvesFrom) root = BEASTS[root].evolvesFrom;
+        // Walk forward
+        var cur = root;
+        while (cur && BEASTS[cur]) {
+            chain.push(cur);
+            cur = BEASTS[cur].evolvesTo || null;
+        }
+
+        if (chain.length > 1) {
+            this.subMenu.add(scene.add.text(cam.width / 2, evoY, 'EVOLUTION', {
+                fontSize: '11px', fontFamily: 'monospace', color: '#f1c40f', fontStyle: 'bold'
+            }).setOrigin(0.5));
+
+            var evoSpacing = Math.min(80, (cam.width - 40) / chain.length);
+            var evoStartX = cam.width / 2 - ((chain.length - 1) * evoSpacing) / 2;
+            for (var e = 0; e < chain.length; e++) {
+                var ex = evoStartX + e * evoSpacing;
+                var ey = evoY + 25;
+                var eName = BEASTS[chain[e]].name;
+                var isCurrent = chain[e] === beastId;
+
+                this.subMenu.add(scene.add.image(ex, ey, 'beast_' + chain[e] + '_icon').setScale(0.6));
+                this.subMenu.add(scene.add.text(ex, ey + 18, eName, {
+                    fontSize: '7px', fontFamily: 'monospace', color: isCurrent ? '#f1c40f' : '#7f8c8d'
+                }).setOrigin(0.5));
+
+                if (e < chain.length - 1) {
+                    var evoLevel = BEASTS[chain[e]].evolvesAt;
+                    this.subMenu.add(scene.add.text(ex + evoSpacing / 2, ey - 4, 'L' + evoLevel, {
+                        fontSize: '7px', fontFamily: 'monospace', color: '#555'
+                    }).setOrigin(0.5));
+                    this.subMenu.add(scene.add.text(ex + evoSpacing / 2, ey + 4, '\u2192', {
+                        fontSize: '10px', fontFamily: 'monospace', color: '#555'
+                    }).setOrigin(0.5));
+                }
+            }
+        }
+
+        // Back button
+        var closeBtn = scene.add.text(cam.width / 2, cam.height - 30, '[ Back ]', {
+            fontSize: '14px', fontFamily: 'monospace', color: '#e74c3c'
+        }).setOrigin(0.5).setInteractive();
+        closeBtn.on('pointerdown', function() {
+            MenuUI._showMonsterdex();
         });
         this.subMenu.add(closeBtn);
     },
@@ -629,7 +917,7 @@ var MenuUI = {
             this._draw();
         }
         if (TouchControls.justPressed('down')) {
-            this.selectedIndex = Math.min(7, this.selectedIndex + 1);
+            this.selectedIndex = Math.min(8, this.selectedIndex + 1);
             this._draw();
         }
         if (TouchControls.justPressed('a')) {

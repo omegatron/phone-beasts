@@ -579,4 +579,174 @@ var SpriteGenerator = {
         p(ctx,2,5,s,'rgba(241,196,15,0.3)');p(ctx,13,5,s,'rgba(241,196,15,0.3)');
         p(ctx,2,8,s,'rgba(52,152,219,0.3)');p(ctx,13,8,s,'rgba(52,152,219,0.3)');
     };
+    // Electric chain: Zaplet → Boltara → Thundrix
+    sh.zaplet = function(ctx,w,h,c,view) {
+        var s=w/16, p=S._p;
+        // Small round spark body
+        for(var y=6;y<12;y++) for(var x=5;x<11;x++) p(ctx,x,y,s,c.primary);
+        for(var y=4;y<7;y++) for(var x=6;x<10;x++) p(ctx,x,y,s,c.primary);
+        // Spark bolts sticking out
+        p(ctx,4,5,s,c.accent);p(ctx,3,4,s,c.accent);
+        p(ctx,11,5,s,c.accent);p(ctx,12,4,s,c.accent);
+        p(ctx,5,3,s,c.accent);p(ctx,10,3,s,c.accent);
+        // Eyes
+        if(view==='front'){p(ctx,7,5,s,'#111');p(ctx,9,5,s,'#111');}
+        // Feet
+        p(ctx,6,12,s,c.secondary);p(ctx,9,12,s,c.secondary);
+        // Tiny tail spark
+        p(ctx,7,12,s,c.accent);p(ctx,8,13,s,c.accent);
+    };
+    sh.boltara = function(ctx,w,h,c,view) {
+        var s=w/16, p=S._p;
+        // Larger body
+        for(var y=5;y<13;y++) for(var x=4;x<12;x++) p(ctx,x,y,s,c.primary);
+        for(var y=3;y<6;y++) for(var x=5;x<11;x++) p(ctx,x,y,s,c.primary);
+        // Lightning bolt ears
+        p(ctx,4,2,s,c.accent);p(ctx,3,1,s,c.accent);p(ctx,2,0,s,c.accent);
+        p(ctx,11,2,s,c.accent);p(ctx,12,1,s,c.accent);p(ctx,13,0,s,c.accent);
+        // Electric arcs on body
+        p(ctx,3,7,s,c.accent);p(ctx,2,6,s,c.accent);
+        p(ctx,12,7,s,c.accent);p(ctx,13,6,s,c.accent);
+        // Eyes
+        if(view==='front'){p(ctx,6,4,s,'#111');p(ctx,9,4,s,'#111');}
+        // Belly stripe
+        for(var x=6;x<10;x++) p(ctx,x,8,s,c.secondary);
+        // Feet and tail
+        p(ctx,5,13,s,c.secondary);p(ctx,10,13,s,c.secondary);
+        p(ctx,7,13,s,c.accent);p(ctx,8,14,s,c.accent);p(ctx,9,15,s,c.accent);
+    };
+    sh.thundrix = function(ctx,w,h,c,view) {
+        var s=w/16, p=S._p;
+        // Large powerful body
+        for(var y=4;y<14;y++) for(var x=3;x<13;x++) p(ctx,x,y,s,c.primary);
+        for(var y=2;y<5;y++) for(var x=4;x<12;x++) p(ctx,x,y,s,c.primary);
+        // Crown-like lightning horns
+        p(ctx,4,1,s,c.accent);p(ctx,3,0,s,c.accent);
+        p(ctx,7,1,s,c.accent);p(ctx,8,0,s,c.accent);
+        p(ctx,11,1,s,c.accent);p(ctx,12,0,s,c.accent);
+        // Crackling arms
+        p(ctx,2,6,s,c.accent);p(ctx,1,5,s,c.accent);p(ctx,0,4,s,c.accent);
+        p(ctx,13,6,s,c.accent);p(ctx,14,5,s,c.accent);p(ctx,15,4,s,c.accent);
+        // Eyes
+        if(view==='front'){p(ctx,5,3,s,'#111');p(ctx,10,3,s,'#111');}
+        // Dark belly
+        for(var y=7;y<12;y++) for(var x=5;x<11;x++) p(ctx,x,y,s,c.secondary);
+        // Feet
+        p(ctx,4,14,s,c.secondary);p(ctx,5,14,s,c.secondary);
+        p(ctx,10,14,s,c.secondary);p(ctx,11,14,s,c.secondary);
+        // Electric tail
+        p(ctx,7,14,s,c.accent);p(ctx,6,15,s,c.accent);p(ctx,8,15,s,c.accent);
+    };
+    // Water chain: Drople → Torrental → Abyssurge
+    sh.drople = function(ctx,w,h,c,view) {
+        var s=w/16, p=S._p;
+        // Teardrop/droplet shape body
+        p(ctx,7,2,s,c.primary);p(ctx,8,2,s,c.primary);
+        for(var x=6;x<10;x++) p(ctx,x,3,s,c.primary);
+        for(var y=4;y<10;y++) for(var x=5;x<11;x++) p(ctx,x,y,s,c.primary);
+        for(var y=10;y<12;y++) for(var x=6;x<10;x++) p(ctx,x,y,s,c.primary);
+        // Shine
+        p(ctx,6,4,s,c.secondary);p(ctx,6,5,s,c.secondary);
+        // Eyes
+        if(view==='front'){p(ctx,6,6,s,'#111');p(ctx,9,6,s,'#111');}
+        // Mouth
+        p(ctx,7,8,s,c.accent);p(ctx,8,8,s,c.accent);
+        // Little feet
+        p(ctx,6,12,s,c.accent);p(ctx,9,12,s,c.accent);
+    };
+    sh.torrental = function(ctx,w,h,c,view) {
+        var s=w/16, p=S._p;
+        // Larger water body with flowing shape
+        for(var y=3;y<12;y++) for(var x=4;x<12;x++) p(ctx,x,y,s,c.primary);
+        for(var y=1;y<4;y++) for(var x=5;x<11;x++) p(ctx,x,y,s,c.primary);
+        // Water crest on head
+        p(ctx,6,0,s,c.secondary);p(ctx,7,0,s,c.secondary);p(ctx,8,0,s,c.secondary);
+        // Flowing side fins
+        p(ctx,3,5,s,c.secondary);p(ctx,2,4,s,c.secondary);
+        p(ctx,12,5,s,c.secondary);p(ctx,13,4,s,c.secondary);
+        // Eyes
+        if(view==='front'){p(ctx,6,3,s,'#111');p(ctx,9,3,s,'#111');}
+        // Belly
+        for(var y=6;y<10;y++) for(var x=6;x<10;x++) p(ctx,x,y,s,c.secondary);
+        // Tail
+        p(ctx,7,12,s,c.accent);p(ctx,8,12,s,c.accent);p(ctx,7,13,s,c.accent);
+        // Feet
+        p(ctx,5,12,s,c.accent);p(ctx,10,12,s,c.accent);
+    };
+    sh.abyssurge = function(ctx,w,h,c,view) {
+        var s=w/16, p=S._p;
+        // Massive body
+        for(var y=3;y<14;y++) for(var x=2;x<14;x++) p(ctx,x,y,s,c.primary);
+        for(var y=1;y<4;y++) for(var x=4;x<12;x++) p(ctx,x,y,s,c.primary);
+        // Crest horns
+        p(ctx,5,0,s,c.secondary);p(ctx,6,0,s,c.secondary);p(ctx,9,0,s,c.secondary);p(ctx,10,0,s,c.secondary);
+        // Armored fins
+        p(ctx,1,5,s,c.secondary);p(ctx,0,4,s,c.secondary);p(ctx,0,6,s,c.secondary);
+        p(ctx,14,5,s,c.secondary);p(ctx,15,4,s,c.secondary);p(ctx,15,6,s,c.secondary);
+        // Eyes
+        if(view==='front'){p(ctx,5,3,s,'#fff');p(ctx,6,3,s,'#111');p(ctx,9,3,s,'#fff');p(ctx,10,3,s,'#111');}
+        // Dark belly pattern
+        for(var y=7;y<12;y++) for(var x=5;x<11;x++) p(ctx,x,y,s,c.secondary);
+        // Feet
+        p(ctx,3,14,s,c.accent);p(ctx,4,14,s,c.accent);p(ctx,11,14,s,c.accent);p(ctx,12,14,s,c.accent);
+        // Tail
+        p(ctx,7,14,s,c.accent);p(ctx,8,14,s,c.accent);p(ctx,7,15,s,c.accent);
+    };
+    // Grass chain: Sproutik → Thornox → Floratitan
+    sh.sproutik = function(ctx,w,h,c,view) {
+        var s=w/16, p=S._p;
+        // Small round plant body
+        for(var y=6;y<12;y++) for(var x=5;x<11;x++) p(ctx,x,y,s,c.primary);
+        // Leaf sprout on top
+        p(ctx,7,3,s,c.accent);p(ctx,8,3,s,c.accent);
+        p(ctx,6,4,s,c.accent);p(ctx,7,4,s,c.primary);p(ctx,8,4,s,c.primary);p(ctx,9,4,s,c.accent);
+        for(var x=6;x<10;x++) p(ctx,x,5,s,c.primary);
+        // Eyes
+        if(view==='front'){p(ctx,6,7,s,'#111');p(ctx,9,7,s,'#111');}
+        // Smile
+        p(ctx,7,9,s,c.accent);p(ctx,8,9,s,c.accent);
+        // Stubby feet
+        p(ctx,6,12,s,c.secondary);p(ctx,9,12,s,c.secondary);
+        // Side leaves
+        p(ctx,4,8,s,c.secondary);p(ctx,11,8,s,c.secondary);
+    };
+    sh.thornox = function(ctx,w,h,c,view) {
+        var s=w/16, p=S._p;
+        // Larger thorny body
+        for(var y=5;y<13;y++) for(var x=4;x<12;x++) p(ctx,x,y,s,c.primary);
+        for(var y=3;y<6;y++) for(var x=5;x<11;x++) p(ctx,x,y,s,c.primary);
+        // Thorn crown
+        p(ctx,5,2,s,c.accent);p(ctx,7,1,s,c.accent);p(ctx,8,1,s,c.accent);p(ctx,10,2,s,c.accent);
+        // Side thorns
+        p(ctx,3,6,s,c.accent);p(ctx,2,5,s,c.accent);
+        p(ctx,12,6,s,c.accent);p(ctx,13,5,s,c.accent);
+        p(ctx,3,10,s,c.accent);p(ctx,12,10,s,c.accent);
+        // Eyes
+        if(view==='front'){p(ctx,6,4,s,'#111');p(ctx,9,4,s,'#111');}
+        // Earthy belly
+        for(var x=6;x<10;x++) for(var y=8;y<11;y++) p(ctx,x,y,s,c.secondary);
+        // Feet
+        p(ctx,5,13,s,c.secondary);p(ctx,10,13,s,c.secondary);
+    };
+    sh.floratitan = function(ctx,w,h,c,view) {
+        var s=w/16, p=S._p;
+        // Massive plant titan body
+        for(var y=4;y<14;y++) for(var x=2;x<14;x++) p(ctx,x,y,s,c.primary);
+        for(var y=2;y<5;y++) for(var x=4;x<12;x++) p(ctx,x,y,s,c.primary);
+        // Flower/leaf crown
+        p(ctx,4,1,s,c.accent);p(ctx,6,0,s,c.accent);p(ctx,7,0,s,'#f1c40f');
+        p(ctx,8,0,s,'#f1c40f');p(ctx,9,0,s,c.accent);p(ctx,11,1,s,c.accent);
+        // Vine arms
+        p(ctx,1,6,s,c.accent);p(ctx,0,5,s,c.accent);p(ctx,0,7,s,c.accent);
+        p(ctx,14,6,s,c.accent);p(ctx,15,5,s,c.accent);p(ctx,15,7,s,c.accent);
+        // Eyes
+        if(view==='front'){p(ctx,5,3,s,'#fff');p(ctx,6,3,s,'#111');p(ctx,9,3,s,'#fff');p(ctx,10,3,s,'#111');}
+        // Earthy/bark belly
+        for(var y=7;y<12;y++) for(var x=5;x<11;x++) p(ctx,x,y,s,c.secondary);
+        // Root-like feet
+        p(ctx,3,14,s,c.secondary);p(ctx,4,14,s,c.secondary);p(ctx,5,15,s,c.secondary);
+        p(ctx,11,14,s,c.secondary);p(ctx,12,14,s,c.secondary);p(ctx,10,15,s,c.secondary);
+        // Moss patches
+        p(ctx,3,8,s,'#4caf50');p(ctx,12,10,s,'#4caf50');
+    };
 })();

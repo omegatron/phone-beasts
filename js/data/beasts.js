@@ -428,6 +428,106 @@ var BEASTS = {
         desc: 'A rare crystalline beast found only on mountain summits.',
         colors: { primary: '#d5d8dc', secondary: '#5dade2', accent: '#aeb6bf' }
     },
+    // ===== THREE-STAGE EVOLUTION CHAINS =====
+    // Electric chain: Zaplet → Boltara → Thundrix
+    zaplet: {
+        id: 'zaplet', name: 'Zaplet', type: 'electric',
+        baseStats: { hp: 40, atk: 48, def: 35, spd: 55 },
+        baseXP: 52,
+        defaultMoves: ['zap', 'tackle', 'quickDash'],
+        learnableMoves: { 8: 'thunderSpark', 12: 'headbutt' },
+        evolvesAt: 14, evolvesTo: 'boltara',
+        desc: 'A tiny sparkling critter that crackles with static.',
+        colors: { primary: '#f9e74a', secondary: '#ff9800', accent: '#fff176' }
+    },
+    boltara: {
+        id: 'boltara', name: 'Boltara', type: 'electric',
+        baseStats: { hp: 58, atk: 68, def: 52, spd: 72 },
+        baseXP: 130,
+        defaultMoves: ['thunderSpark', 'zap', 'quickDash', 'headbutt'],
+        learnableMoves: { 20: 'voltCrush', 26: 'slam' },
+        evolvesAt: 30, evolvesTo: 'thundrix',
+        evolvesFrom: 'zaplet',
+        desc: 'An agile electric beast wrapped in crackling arcs.',
+        colors: { primary: '#fbc02d', secondary: '#ff6f00', accent: '#f57f17' }
+    },
+    thundrix: {
+        id: 'thundrix', name: 'Thundrix', type: 'electric', type2: 'normal',
+        baseStats: { hp: 85, atk: 95, def: 75, spd: 100 },
+        baseXP: 210,
+        defaultMoves: ['voltCrush', 'stormSurge', 'slam', 'quickDash'],
+        learnableMoves: { 36: 'bodyPress', 42: 'thunderSpark' },
+        evolvesFrom: 'boltara',
+        desc: 'A thunderous titan whose strikes split the sky.',
+        colors: { primary: '#f57f17', secondary: '#1a1a2e', accent: '#ffeb3b' }
+    },
+
+    // Water chain: Drople → Torrental → Abyssurge
+    drople: {
+        id: 'drople', name: 'Drople', type: 'water',
+        baseStats: { hp: 48, atk: 40, def: 45, spd: 42 },
+        baseXP: 50,
+        defaultMoves: ['splashJet', 'tackle', 'shellGuard'],
+        learnableMoves: { 8: 'tidalWave', 12: 'mudSlap' },
+        evolvesAt: 14, evolvesTo: 'torrental',
+        desc: 'A cheerful water droplet beast that bounces along streams.',
+        colors: { primary: '#4fc3f7', secondary: '#b3e5fc', accent: '#0288d1' }
+    },
+    torrental: {
+        id: 'torrental', name: 'Torrental', type: 'water',
+        baseStats: { hp: 68, atk: 60, def: 65, spd: 58 },
+        baseXP: 135,
+        defaultMoves: ['tidalWave', 'splashJet', 'mudSlap', 'shellGuard'],
+        learnableMoves: { 20: 'aquaSlam', 26: 'dig' },
+        evolvesAt: 30, evolvesTo: 'abyssurge',
+        evolvesFrom: 'drople',
+        desc: 'A surging water beast that commands rushing currents.',
+        colors: { primary: '#0288d1', secondary: '#80deea', accent: '#01579b' }
+    },
+    abyssurge: {
+        id: 'abyssurge', name: 'Abyssurge', type: 'water', type2: 'ground',
+        baseStats: { hp: 95, atk: 88, def: 90, spd: 72 },
+        baseXP: 215,
+        defaultMoves: ['hydroBlast', 'aquaSlam', 'earthShatter', 'shellGuard'],
+        learnableMoves: { 36: 'dig', 42: 'bodyPress' },
+        evolvesFrom: 'torrental',
+        desc: 'An abyssal leviathan that reshapes coastlines with each step.',
+        colors: { primary: '#01579b', secondary: '#004d40', accent: '#0d47a1' }
+    },
+
+    // Grass chain: Sproutik → Thornox → Floratitan
+    sproutik: {
+        id: 'sproutik', name: 'Sproutik', type: 'grass',
+        baseStats: { hp: 45, atk: 42, def: 48, spd: 40 },
+        baseXP: 50,
+        defaultMoves: ['vineLash', 'tackle', 'harden'],
+        learnableMoves: { 8: 'razorLeaf', 12: 'rockToss' },
+        evolvesAt: 14, evolvesTo: 'thornox',
+        desc: 'A tiny seedling with stubby legs and bright leaves.',
+        colors: { primary: '#66bb6a', secondary: '#a5d6a7', accent: '#2e7d32' }
+    },
+    thornox: {
+        id: 'thornox', name: 'Thornox', type: 'grass', type2: 'ground',
+        baseStats: { hp: 65, atk: 62, def: 70, spd: 55 },
+        baseXP: 130,
+        defaultMoves: ['razorLeaf', 'vineLash', 'rockToss', 'harden'],
+        learnableMoves: { 20: 'thornStorm', 26: 'dig' },
+        evolvesAt: 30, evolvesTo: 'floratitan',
+        evolvesFrom: 'sproutik',
+        desc: 'A thorny plant beast with roots that crack stone.',
+        colors: { primary: '#2e7d32', secondary: '#8d6e63', accent: '#1b5e20' }
+    },
+    floratitan: {
+        id: 'floratitan', name: 'Floratitan', type: 'grass', type2: 'ground',
+        baseStats: { hp: 100, atk: 85, def: 95, spd: 65 },
+        baseXP: 220,
+        defaultMoves: ['solarBloom', 'thornStorm', 'earthShatter', 'harden'],
+        learnableMoves: { 36: 'bodyPress', 42: 'dig' },
+        evolvesFrom: 'thornox',
+        desc: 'An ancient forest titan wreathed in vines and boulders.',
+        colors: { primary: '#1b5e20', secondary: '#4e342e', accent: '#33691e' }
+    },
+
     anthropobeast: {
         id: 'anthropobeast', name: 'Anthropobeast', type: 'water', type2: 'fire',
         baseStats: { hp: 120, atk: 120, def: 120, spd: 120 },
@@ -457,12 +557,13 @@ var ENCOUNTERS = {
         { id: 'seedpod',    minLevel: 5, maxLevel: 7, weight: 10 }
     ],
     mistyWoods: [
-        { id: 'pyrobat',    minLevel: 9, maxLevel: 11, weight: 18 },
-        { id: 'glimworm',   minLevel: 8, maxLevel: 10, weight: 18 },
-        { id: 'coralite',   minLevel: 9, maxLevel: 11, weight: 16 },
-        { id: 'shadowkit',  minLevel: 10, maxLevel: 12, weight: 14 },
-        { id: 'vinewhip',   minLevel: 8, maxLevel: 10, weight: 16 },
-        { id: 'pudlop',     minLevel: 8, maxLevel: 10, weight: 18 }
+        { id: 'pyrobat',    minLevel: 9, maxLevel: 11, weight: 16 },
+        { id: 'glimworm',   minLevel: 8, maxLevel: 10, weight: 16 },
+        { id: 'coralite',   minLevel: 9, maxLevel: 11, weight: 14 },
+        { id: 'shadowkit',  minLevel: 10, maxLevel: 12, weight: 12 },
+        { id: 'vinewhip',   minLevel: 8, maxLevel: 10, weight: 14 },
+        { id: 'pudlop',     minLevel: 8, maxLevel: 10, weight: 16 },
+        { id: 'sproutik',   minLevel: 8, maxLevel: 10, weight: 12 }
     ],
     mountainPath: [
         { id: 'pebblit',    minLevel: 10, maxLevel: 13, weight: 30 },
@@ -472,21 +573,24 @@ var ENCOUNTERS = {
         { id: 'glimworm',   minLevel: 10, maxLevel: 13, weight: 12 }
     ],
     route3: [
-        { id: 'cinderpup',  minLevel: 10, maxLevel: 12, weight: 16 },
-        { id: 'frostfin',   minLevel: 10, maxLevel: 12, weight: 16 },
-        { id: 'zappfly',    minLevel: 11, maxLevel: 13, weight: 16 },
-        { id: 'shellbit',   minLevel: 10, maxLevel: 12, weight: 14 },
-        { id: 'pudlop',     minLevel: 10, maxLevel: 12, weight: 14 },
-        { id: 'dustmole',   minLevel: 10, maxLevel: 13, weight: 12 },
-        { id: 'pyrobat',    minLevel: 11, maxLevel: 13, weight: 12 }
+        { id: 'cinderpup',  minLevel: 10, maxLevel: 12, weight: 14 },
+        { id: 'frostfin',   minLevel: 10, maxLevel: 12, weight: 14 },
+        { id: 'zappfly',    minLevel: 11, maxLevel: 13, weight: 14 },
+        { id: 'shellbit',   minLevel: 10, maxLevel: 12, weight: 12 },
+        { id: 'pudlop',     minLevel: 10, maxLevel: 12, weight: 12 },
+        { id: 'dustmole',   minLevel: 10, maxLevel: 13, weight: 10 },
+        { id: 'pyrobat',    minLevel: 11, maxLevel: 13, weight: 10 },
+        { id: 'drople',     minLevel: 10, maxLevel: 12, weight: 14 }
     ],
     route4: [
-        { id: 'zappfly',    minLevel: 13, maxLevel: 16, weight: 20 },
-        { id: 'sparkit',    minLevel: 13, maxLevel: 15, weight: 15 },
-        { id: 'glimworm',   minLevel: 14, maxLevel: 16, weight: 18 },
-        { id: 'dustmole',   minLevel: 13, maxLevel: 16, weight: 15 },
-        { id: 'cinderpup',  minLevel: 14, maxLevel: 16, weight: 16 },
-        { id: 'shellbit',   minLevel: 13, maxLevel: 15, weight: 16 }
+        { id: 'zappfly',    minLevel: 13, maxLevel: 16, weight: 16 },
+        { id: 'sparkit',    minLevel: 13, maxLevel: 15, weight: 12 },
+        { id: 'glimworm',   minLevel: 14, maxLevel: 16, weight: 14 },
+        { id: 'dustmole',   minLevel: 13, maxLevel: 16, weight: 12 },
+        { id: 'cinderpup',  minLevel: 14, maxLevel: 16, weight: 12 },
+        { id: 'shellbit',   minLevel: 13, maxLevel: 15, weight: 12 },
+        { id: 'zaplet',     minLevel: 13, maxLevel: 16, weight: 14 },
+        { id: 'drople',     minLevel: 13, maxLevel: 15, weight: 8 }
     ],
     // Keep worldMap for backwards compat with old saves
     worldMap: [

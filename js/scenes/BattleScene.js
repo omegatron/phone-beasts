@@ -46,6 +46,11 @@ var BattleScene = new Phaser.Class({
         this._drawBeasts();
         this._drawBeastInfo();
 
+        // Mark all enemy beasts as seen
+        for (var i = 0; i < this.enemyTeam.length; i++) {
+            PlayerState.markSeen(this.enemyTeam[i].id);
+        }
+
         // Opening message
         var self = this;
         var openMsg = this.battleType === 'wild'
@@ -290,6 +295,7 @@ var BattleScene = new Phaser.Class({
             var catchBeast = PlayerState.createBeastInstance(enemyBeast.id, enemyBeast.level);
             catchBeast.currentHP = enemyBeast.currentHP;
 
+            PlayerState.markCaught(enemyBeast.id);
             DialogManager.showDialog(["You used a " + orbName + "!", "...", "The orb glows warmly! " + enemyBeast.name + " became your friend!"], function() {
                 if (PlayerState.team.length < 6) {
                     PlayerState.addBeastToTeam(catchBeast);
